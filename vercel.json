@@ -1,1 +1,57 @@
-
+{
+  "version": 2,
+  "buildCommand": "npm install",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/src/app.js"
+    }
+  ],
+  "functions": {
+    "src/app.js": {
+      "memory": 3008,
+      "maxDuration": 300,
+      "runtime": "nodejs20.x"
+    }
+  },
+  "env": {
+    "GROQ_API_KEY": "@groq-api-key",
+    "GEMINI_API_KEY": "@gemini-api-key",
+    "DEEPSEEK_API_KEY": "@deepseek-api-key",
+    "MISTRAL_API_KEY": "@mistral-api-key",
+    "CEREBRAS_API_KEY": "@cerebras-api-key",
+    "TOGETHER_API_KEY": "@together-api-key",
+    "FIREWORKS_API_KEY": "@fireworks-api-key",
+    "TAVILY_API_KEY": "@tavily-api-key",
+    "NVIDIA_API_KEY": "@nvidia-api-key",
+    "CLOUDFLARE_API_KEY": "@cloudflare-api-key",
+    "CLOUDFLARE_ACCOUNT_ID": "@cloudflare-account-id",
+    "VITE_FIREBASE_API_KEY": "@firebase-api-key",
+    "VITE_FIREBASE_PROJECT_ID": "@firebase-project-id",
+    "FIREBASE_CLIENT_EMAIL": "@firebase-client-email",
+    "FIREBASE_PRIVATE_KEY": "@firebase-private-key",
+    "CANVA_PUBLIC_KEY": "@canva-public-key",
+    "CANVA_KID": "@canva-kid",
+    "APP_ENV": "production"
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}
