@@ -1,1 +1,52 @@
-
+{
+  "name": "ai-raksasa",
+  "version": "1.0.0",
+  "description": "AI Raksasa — Orkestrasi 10 API AI dengan sistem Reti-Reti Double Check",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/app.js",
+    "start": "node src/app.js",
+    "test": "node --test tests/unit.test.js && node --test tests/integration.test.js",
+    "test:unit": "node --test tests/unit.test.js",
+    "test:integration": "node --test tests/integration.test.js",
+    "setup": "node scripts/setup.js",
+    "deploy": "vercel --prod",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@tavily/core": "^0.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.1.0",
+    "groq-sdk": "^0.15.0",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.83.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "ai",
+    "orchestrator",
+    "multi-ai",
+    "code-generator",
+    "gemini",
+    "deepseek",
+    "groq",
+    "mistral"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
