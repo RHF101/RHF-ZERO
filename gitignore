@@ -1,1 +1,92 @@
+# ============================================================
+# AI RAKSASA — .gitignore
+# ============================================================
 
+# Environment Variables (MENGANDUNG API KEY — JANGAN PERNAH COMMIT)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build Output
+dist/
+build/
+.next/
+out/
+
+# Vercel
+.vercel
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.code-workspace
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.temp
+download/*
+!download/.gitkeep
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log
+firebase.json
+.firebase/
+.firebaserc
+
+# Certificates
+*.pem
+*.key
+*.cert
+*.crt
+
+# Sensitive (JANGAN SAMPAI KECOMIT)
+*_API_KEY
+*_SECRET
+*_TOKEN
+credentials.json
+service-account.json
+
+# Uploads
+uploads/
+
+# Cache
+.cache/
+.eslintcache
+.parcel-cache/
+.turbo/
