@@ -111,3 +111,4 @@ superai/
 - ✅ Responsive (mobile + desktop)
 - ✅ Fallback otomatis kalau satu AI error
 - 
+.
