@@ -1,2 +1,3 @@
-// Re-export app.js dari src/ai/
-export { default } from '../src/ai/app.js';
+export default async function handler(req, res) {
+  res.json({ status: 'online', message: 'AI Raksasa API' });
+}
