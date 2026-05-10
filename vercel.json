@@ -1,3 +1,16 @@
 {
-  "version": 2
+  "version": 2,
+  "functions": {
+    "src/ai/app.js": {
+      "memory": 3008,
+      "maxDuration": 300,
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/src/ai/app.js"
+    }
+  ]
 }
