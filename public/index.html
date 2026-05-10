@@ -1,1 +1,754 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Raksasa — 10 AI Orchestrator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ========== HEADER ========== */
+    .header {
+      background: #111118;
+      border-bottom: 1px solid #1e1e2e;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #888;
+      margin-top: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00e676;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .session-id {
+      font-size: 11px;
+      color: #555;
+      background: #1a1a24;
+      padding: 6px 12px;
+      border-radius: 6px;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ========== MAIN LAYOUT ========== */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+      width: 260px;
+      background: #0e0e16;
+      border-right: 1px solid #1e1e2e;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .btn-new-chat {
+      width: 100%;
+      padding: 10px;
+      background: #1a1a28;
+      color: #ccc;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-new-chat:hover {
+      background: #24243a;
+      border-color: #6c5ce7;
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item:hover {
+      background: #1a1a28;
+      color: #ccc;
+    }
+
+    .history-item.active {
+      background: #1a1a2e;
+      color: #a29bfe;
+      border: 1px solid #2a2a4a;
+    }
+
+    /* ========== CHAT AREA ========== */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.ai {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .avatar.user {
+      background: #1e1e2e;
+    }
+
+    .avatar.ai {
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .bubble.user {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #2a2a4a;
+    }
+
+    .bubble.ai {
+      background: #111118;
+      color: #d0d0d0;
+      border: 1px solid #1e1e2e;
+    }
+
+    .bubble pre {
+      background: #0a0a14;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      font-size: 12px;
+      border: 1px solid #1e1e2e;
+      position: relative;
+    }
+
+    .bubble code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #1e1e2e;
+      color: #888;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #2a2a3a;
+      color: #fff;
+    }
+
+    .metadata-bar {
+      font-size: 11px;
+      color: #555;
+      margin-top: 6px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .metadata-bar span {
+      background: #0e0e16;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .download-link {
+      color: #a29bfe;
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .download-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ========== INPUT AREA ========== */
+    .input-container {
+      padding: 16px 24px;
+      border-top: 1px solid #1e1e2e;
+      background: #0a0a0f;
+      flex-shrink: 0;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .input-box {
+      flex: 1;
+      background: #111118;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: #e0e0e0;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      min-height: 48px;
+      max-height: 200px;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.5;
+    }
+
+    .input-box:focus {
+      border-color: #6c5ce7;
+    }
+
+    .input-box::placeholder {
+      color: #444;
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, #6c5ce7, #8b7cf0);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover {
+      background: linear-gradient(135deg, #7d6ff0, #9b8ff5);
+      transform: translateY(-1px);
+    }
+
+    .btn-send:disabled {
+      background: #1e1e2e;
+      color: #555;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-upload {
+      background: #111118;
+      color: #888;
+      border: 1px solid #1e1e2e;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-upload:hover {
+      background: #1a1a28;
+      color: #ccc;
+    }
+
+    .mode-indicator {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #555;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-indicator .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .mode-indicator .dot.santai {
+      background: #00e676;
+    }
+
+    .mode-indicator .dot.serius {
+      background: #ff9100;
+    }
+
+    /* ========== LOADING ========== */
+    .loading-dots {
+      display: flex;
+      gap: 4px;
+      padding: 8px 0;
+    }
+
+    .loading-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #555;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); }
+      40% { transform: scale(1); }
+    }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e1e2e;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2a2a3a;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .message {
+        max-width: 95%;
+      }
+
+      .header {
+        padding: 10px 16px;
+      }
+
+      .chat-messages {
+        padding: 16px;
+      }
+
+      .input-container {
+        padding: 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">⚡</div>
+      <div>
+        <div class="title">AI Raksasa</div>
+        <div class="subtitle">10 AI • Reti-Reti Double Check</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot"></div>
+      <span class="status-text">Online</span>
+      <span class="session-id" id="sessionId">Session: ...</span>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Riwayat</div>
+        <button class="btn-new-chat" onclick="newChat()">+ Percakapan Baru</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-item active">Percakapan saat ini</div>
+      </div>
+    </aside>
+
+    <!-- CHAT -->
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages">
+        <!-- Welcome -->
+        <div class="message ai">
+          <div class="avatar ai">🧠</div>
+          <div>
+            <div class="bubble ai">
+              Halo! Aku AI Raksasa, gabungan 10 AI yang saling melengkapi.<br><br>
+              <b>Mode Santai:</b> Tanya jawab biasa, jawab singkat & natural.<br>
+              <b>Mode Serius:</b> Coding dengan sistem Reti-Reti Double Check.<br><br>
+              Silakan kirim pesan atau upload file kode. 🚀
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INPUT -->
+      <div class="input-container">
+        <div class="mode-indicator" id="modeIndicator">
+          <span class="dot santai"></span> Mode: Santai (siap jawab)
+        </div>
+        <div class="input-wrapper">
+          <button class="btn-upload" onclick="document.getElementById('fileInput').click()" title="Upload file">
+            📎
+          </button>
+          <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)" accept=".js,.py,.ts,.jsx,.tsx,.html,.css,.json,.md,.txt,.java,.go,.rs,.cpp,.c">
+          <textarea
+            class="input-box"
+            id="userInput"
+            placeholder="Ketik pesan atau minta kode..."
+            rows="1"
+            onkeydown="handleKeyDown(event)"
+          ></textarea>
+          <button class="btn-send" id="btnSend" onclick="sendMessage()">Kirim</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ============================================================
+    // AI RAKSASA — Frontend Chat
+    // ============================================================
+
+    const API_URL = '/api/chat';
+    let sessionId = generateSessionId();
+    let isProcessing = false;
+
+    document.getElementById('sessionId').textContent = 'Session: ' + sessionId.substring(0, 12) + '...';
+
+    function generateSessionId() {
+      return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+    }
+
+    function newChat() {
+      sessionId = generateSessionId();
+      document.getElementById('sessionId').textContent = 'Session: ' + sessionId.substring(0, 12) + '...';
+      document.getElementById('chatMessages').innerHTML = `
+        <div class="message ai">
+          <div class="avatar ai">🧠</div>
+          <div>
+            <div class="bubble ai">
+              Percakapan baru dimulai. Ada yang bisa dibantu? 🚀
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      if (isProcessing) return;
+
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      isProcessing = true;
+      document.getElementById('btnSend').disabled = true;
+
+      // Tambah pesan user
+      addMessage('user', message);
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Tambah loading
+      const loadingId = addLoading();
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: message,
+            sessionId: sessionId
+          })
+        });
+
+        const data = await response.json();
+
+        // Hapus loading
+        removeLoading(loadingId);
+
+        // Tampilkan respons
+        if (data.mode === 'santai') {
+          addMessage('ai', data.response, null);
+          updateModeIndicator('santai');
+        } else if (data.mode === 'serius') {
+          let content = data.response;
+
+          // Tambah metadata
+          if (data.metadata) {
+            content += `
+              <div class="metadata-bar">
+                <span>📏 ${data.metadata.panjangCode || '?'} karakter</span>
+                <span>✅ Dicek: ${data.metadata.dicekOleh || 'Reti-Reti'}</span>
+                <span>📚 ${data.metadata.risetDari || '?'} sumber</span>
+              </div>
+            `;
+          }
+
+          // Tambah download link
+          if (data.downloadUrl) {
+            content += `<br><a class="download-link" href="${data.downloadUrl}" download>📥 Download Kode</a>`;
+          }
+
+          addMessage('ai', content, data.response);
+          updateModeIndicator('serius');
+        }
+      } catch (error) {
+        removeLoading(loadingId);
+        addMessage('ai', '❌ Error: ' + error.message, null);
+      }
+
+      isProcessing = false;
+      document.getElementById('btnSend').disabled = false;
+      document.getElementById('userInput').focus();
+    }
+
+    function addMessage(role, content, rawCode) {
+      const messages = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'message ' + role;
+
+      const avatarEmoji = role === 'user' ? '👤' : '🧠';
+      const bubbleClass = 'bubble ' + role;
+
+      // Format kode dalam bubble
+      let formattedContent = content;
+      if (rawCode) {
+        // Escape HTML dulu
+        const escaped = rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        formattedContent = formattedContent.replace(rawCode, 
+          `<pre><code>${escaped}</code><button class="copy-btn" onclick="copyCode(this)">Salin</button></pre>`);
+      }
+
+      div.innerHTML = `
+        <div class="avatar ${role}">${avatarEmoji}</div>
+        <div>
+          <div class="${bubbleClass}">${formattedContent}</div>
+        </div>
+      `;
+
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function addLoading() {
+      const messages = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      const id = 'loading_' + Date.now();
+      div.id = id;
+      div.className = 'message ai';
+      div.innerHTML = `
+        <div class="avatar ai">🧠</div>
+        <div>
+          <div class="bubble ai">
+            <div class="loading-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      `;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+      return id;
+    }
+
+    function removeLoading(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function updateModeIndicator(mode) {
+      const indicator = document.getElementById('modeIndicator');
+      if (mode === 'santai') {
+        indicator.innerHTML = '<span class="dot santai"></span> Mode: Santai (jawab singkat)';
+      } else {
+        indicator.innerHTML = '<span class="dot serius"></span> Mode: Serius (Reti-Reti Double Check)';
+      }
+    }
+
+    function copyCode(btn) {
+      const pre = btn.parentElement;
+      const code = pre.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Tersalin!';
+        setTimeout(() => { btn.textContent = 'Salin'; }, 2000);
+      });
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target.result;
+        const truncated = content.substring(0, 500) + (content.length > 500 ? '\n... (file terpotong untuk preview)' : '');
+        document.getElementById('userInput').value = 
+          `Tolong analisis file ini:\n\n[Nama file: ${file.name}]\n[Ukuran: ${(file.size / 1024).toFixed(1)} KB]\n\n\`\`\`\n${truncated}\n\`\`\``;
+      };
+      reader.readAsText(file);
+    }
+  </script>
+
+</body>
+  </html>
