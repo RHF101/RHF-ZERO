@@ -1,3 +1,7 @@
-export default async function handler(req, res) {
-  res.json({ status: 'online', message: 'AI Raksasa API' });
+export default function handler(req, res) {
+  res.status(200).json({
+    status: 'online',
+    name: 'AI Raksasa',
+    timestamp: new Date().toISOString()
+  });
 }
