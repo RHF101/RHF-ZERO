@@ -410,6 +410,74 @@
       input.value = '';
       input.style.height = 'auto';
 
+      function handleKeyDown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+      }
+
+      const VISION_URL = '/api/vision';
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.type.startsWith('image/')) {
+    if (file.size > 10 * 1024 * 1024) {
+      addMessage('ai', '❌ Ukuran gambar maksimal 10MB', null, false);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64 = e.target.result;
+      addMessage('user', '<img src="' + base64 + '" style="max-width:200px;border-radius:8px;" alt="Uploaded"><br><em>Menganalisis gambar...</em>');
+
+      const loadingId = addLoading();
+
+      try {
+        const response = await fetch(VISION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64,
+            prompt: 'Jelaskan gambar ini secara detail. Sebutkan semua objek, warna, bentuk, posisi, suasana, dan detail penting. Jika tidak ada teks, tetap deskripsikan.',
+          }),
+        });
+
+        const data = await response.json();
+        removeLoading(loadingId);
+
+        if (data.success) {
+          addMessage('ai', '🖼️ ' + data.response, null, false);
+        } else {
+          addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
+        }
+      } catch (error) {
+        removeLoading(loadingId);
+        addMessage('ai', '❌ Error: ' + error.message, null, false);
+      }
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    const maxPreview = 2000;
+    const truncated = content.length > maxPreview
+      ? content.substring(0, maxPreview) + '\n\n... (file terpotong, total ' + content.length + ' karakter)'
+      : content;
+    document.getElementById('userInput').value =
+      'Tolong analisis file ini:\n\n[Nama: ' + file.name + ']\n[Ukuran: ' + (file.size/1024).toFixed(1) + ' KB]\n[Tipe: ' + (file.type || 'teks') + ']\n\n```\n' + truncated + '\n```';
+    
+    setTimeout(() => sendMessage(), 300);
+  };
+  reader.readAsText(file);
+}
+      
       const fileMatch = message.match(/(?:file|buat|bikinin?|tulis(?:kan)?)\s+(?:html|css|js|py|ts|json|txt)\s*(?:file\s*)?(?:bernama\s+)?(\w+\.\w+)/i);
       if (fileMatch) lastFilename = fileMatch[1];
 
