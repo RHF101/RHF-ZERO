@@ -1,34 +1,14 @@
-// ============================================================
-// AI RAKSASA — Entry Point / API Server
-// Deploy: Vercel Serverless Function
-// ============================================================
-
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import { createOrchestrator } from './orchestrator.js';
-import { getChatHistory } from '../memory.js';
-import { getDownloadFile } from '../output.js';
-import { logProgress } from '../utils.js';
-import { CONFIG } from './config.js';
 
-const app = express();   // ← INI HARUS ADA
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
-
+const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static files (UI)
-app.use(express.static('public'));
 
 // ============================================================
-// HEALTH CHECK
+// HEALTH CHECK — PASTI JALAN
 // ============================================================
-
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
@@ -39,160 +19,113 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================================
-// CHAT ENDPOINT (UTAMA)
+// LOAD MODULES DENGAN TRY-CATCH (SUPAYA TIDAK CRASH)
 // ============================================================
+let createOrchestrator, getChatHistory, getDownloadFile, logProgress, CONFIG;
 
+try {
+  const orchestratorModule = await import('./orchestrator.js');
+  createOrchestrator = orchestratorModule.createOrchestrator;
+  console.log('✅ orchestrator loaded');
+} catch (e) {
+  console.error('❌ orchestrator gagal:', e.message);
+}
+
+try {
+  const memoryModule = await import('../memory.js');
+  getChatHistory = memoryModule.getChatHistory;
+  console.log('✅ memory loaded');
+} catch (e) {
+  console.error('❌ memory gagal:', e.message);
+}
+
+try {
+  const outputModule = await import('../output.js');
+  getDownloadFile = outputModule.getDownloadFile;
+  console.log('✅ output loaded');
+} catch (e) {
+  console.error('❌ output gagal:', e.message);
+}
+
+try {
+  const utilsModule = await import('../utils.js');
+  logProgress = utilsModule.logProgress;
+  console.log('✅ utils loaded');
+} catch (e) {
+  console.error('❌ utils gagal:', e.message);
+}
+
+try {
+  const configModule = await import('./config.js');
+  CONFIG = configModule.CONFIG;
+  console.log('✅ config loaded');
+} catch (e) {
+  console.error('❌ config gagal:', e.message);
+}
+
+// ============================================================
+// CHAT ENDPOINT — HANYA JALAN KALAU MODULE LENGKAP
+// ============================================================
 app.post('/api/chat', async (req, res) => {
-  const startTime = Date.now();
-  
+  if (!createOrchestrator) {
+    return res.status(500).json({ error: 'Orchestrator tidak tersedia. Periksa API keys.' });
+  }
+
   try {
     const { message, sessionId, files, forceMode } = req.body;
-
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Pesan tidak boleh kosong', mode: 'error' });
-    }
-
-    if (message.length > 50000) {
-      return res.status(400).json({ error: 'Pesan terlalu panjang (maks 50.000 karakter)', mode: 'error' });
-    }
+    if (!message) return res.status(400).json({ error: 'Pesan kosong' });
 
     const session = sessionId || 'sess_' + Date.now();
-    logProgress('REQUEST', `Sesi: ${session} | ${message.substring(0, 80)}...`);
+    if (logProgress) logProgress('REQUEST', session.substring(0, 12));
 
     const orchestrator = createOrchestrator(session);
     const result = await orchestrator.handle(message, { files, forceMode });
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    res.json({
-      ...result,
-      sessionId: session,
-      elapsed: elapsed + ' detik',
-      timestamp: new Date().toISOString(),
-    });
-
+    res.json({ ...result, sessionId: session });
   } catch (error) {
-    logProgress('ERROR', error.message);
-    res.status(500).json({
-      mode: 'error',
-      response: 'Maaf, terjadi kesalahan.',
-      error: process.env.APP_ENV === 'development' ? error.message : null,
-      sessionId: req.body?.sessionId || null,
-    });
+    console.error('Chat error:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // ============================================================
 // DOWNLOAD ENDPOINT
 // ============================================================
-
 app.get('/api/download/:fileId', async (req, res) => {
+  if (!getDownloadFile) return res.status(500).json({ error: 'Download tidak tersedia' });
   try {
-    const { fileId } = req.params;
-    const file = await getDownloadFile(fileId);
-
-    if (!file) {
-      return res.status(404).json({ error: 'File tidak ditemukan' });
-    }
-
+    const file = await getDownloadFile(req.params.fileId);
+    if (!file) return res.status(404).json({ error: 'File tidak ditemukan' });
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
     res.send(file.content);
-  } catch (error) {
-    res.status(500).json({ error: 'Gagal mengunduh file' });
+  } catch (e) {
+    res.status(500).json({ error: 'Gagal download' });
   }
 });
 
 // ============================================================
 // HISTORY ENDPOINT
 // ============================================================
-
 app.get('/api/history/:sessionId', async (req, res) => {
+  if (!getChatHistory) return res.status(500).json({ error: 'History tidak tersedia' });
   try {
-    const { sessionId } = req.params;
-    const history = await getChatHistory(sessionId);
-
-    if (!history) {
-      return res.status(404).json({ error: 'Sesi tidak ditemukan' });
-    }
-
-    res.json({ sessionId, messageCount: history.length, messages: history });
-  } catch (error) {
-    res.status(500).json({ error: 'Gagal mengambil riwayat' });
+    const history = await getChatHistory(req.params.sessionId);
+    if (!history) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+    res.json({ sessionId: req.params.sessionId, messageCount: history.length, messages: history });
+  } catch (e) {
+    res.status(500).json({ error: 'Gagal ambil history' });
   }
 });
 
 // ============================================================
-// TEST ENDPOINT
+// 404 HANDLER
 // ============================================================
-
-app.post('/api/test', async (req, res) => {
-  try {
-    const { type } = req.body;
-    const results = {};
-
-    if (!type || type === 'all' || type === 'splitter') {
-      const { splitIntoChunks } = await import('../core.js');   // ← PERBAIKI
-      const sampleCode = 'function test() {\n  console.log("hello");\n}\n'.repeat(100);
-      const chunks = splitIntoChunks(sampleCode);
-      results.splitter = { status: 'ok', chunkCount: chunks.length };
-    }
-
-    if (!type || type === 'all' || type === 'detector') {
-      const { detectIntent } = await import('../core.js');      // ← PERBAIKI
-      const testCases = [
-        { input: 'Halo apa kabar?', expected: 'santai' },
-        { input: 'Buatkan fungsi sorting array', expected: 'serius' },
-      ];
-      results.detector = {
-        status: 'ok',
-        tests: testCases.map(tc => ({
-          input: tc.input,
-          result: detectIntent(tc.input),
-          expected: tc.expected,
-          pass: detectIntent(tc.input) === tc.expected,
-        })),
-      };
-    }
-
-    if (!type || type === 'all' || type === 'config') {
-      results.config = {
-        status: 'ok',
-        chunkSize: CONFIG.CHUNK_SIZE,
-        overlapSize: CONFIG.OVERLAP_SIZE,
-      };
-    }
-
-    res.json({ status: 'ok', results, timestamp: new Date().toISOString() });
-  } catch (error) {
-    res.status(500).json({ status: 'error', error: error.message });
-  }
-});
-
-// ============================================================
-// 404 + ERROR HANDLER
-// ============================================================
-
 app.use((req, res) => {
-  res.status(404).json({
-    error: 'Endpoint tidak ditemukan',
-    endpoints: ['GET /api/health', 'POST /api/chat', 'GET /api/download/:fileId', 'GET /api/history/:sessionId', 'POST /api/test'],
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal server error' });
+  res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
 
 // ============================================================
-// EXPORT + STANDALONE
+// EXPORT
 // ============================================================
-
 export default app;
-
-const isStandalone = !process.env.VERCEL;
-if (isStandalone) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log('⚡ AI RAKSASA — http://localhost:' + PORT));
-  }
