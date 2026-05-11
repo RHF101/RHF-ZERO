@@ -483,6 +483,101 @@ async function processFile(content, fileName, fileType, isBase64, displayType) {
   }
 }
 
+      // ============================================================
+// TAMBAHKAN DI BAGIAN PALING BAWAH <script>
+// Sebelum </script> penutup
+// ============================================================
+
+const READER_URL = '/api/reader';
+const VISION_URL = '/api/vision';
+const EXPORT_URL = '/api/export';
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 20 * 1024 * 1024) {
+    addMessage('ai', '⚠️ File besar (' + (file.size / 1024 / 1024).toFixed(1) + 'MB), mungkin butuh waktu...', null, false);
+  }
+
+  const reader = new FileReader();
+
+  if (file.type.startsWith('image/')) {
+    reader.onload = async function(e) {
+      const base64 = e.target.result;
+      addMessage('user', '<img src="' + base64 + '" style="max-width:200px;border-radius:8px;" alt="Uploaded"><br><em>Menganalisis gambar...</em>');
+      const loadingId = addLoading();
+      try {
+        const response = await fetch(VISION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64, prompt: 'Jelaskan gambar ini secara detail. Sebutkan semua objek, warna, bentuk, posisi, suasana, dan detail penting. Jika tidak ada teks, tetap deskripsikan.' }),
+        });
+        const data = await response.json();
+        removeLoading(loadingId);
+        if (data.success) {
+          addMessage('ai', '🖼️ ' + data.response, null, false);
+        } else {
+          addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
+        }
+      } catch (error) {
+        removeLoading(loadingId);
+        addMessage('ai', '❌ Error: ' + error.message, null, false);
+      }
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+
+  reader.onload = async function(e) {
+    const content = e.target.result;
+    const displayContent = content.length > 500 ? content.substring(0, 500) + '\n... (' + (file.size / 1024).toFixed(1) + ' KB)' : content;
+    addMessage('user', '📄 <b>' + file.name + '</b> (' + (file.size / 1024).toFixed(1) + ' KB)<br><em>Menganalisis...</em>');
+    const loadingId = addLoading();
+    try {
+      const response = await fetch(READER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content, fileName: file.name, fileType: file.type, isBase64: false }),
+      });
+      const data = await response.json();
+      removeLoading(loadingId);
+      if (data.success) {
+        addMessage('ai', '📊 <b>Analisis ' + file.name + ':</b><br><br>' + data.analysis, null, false);
+      } else {
+        addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
+      }
+    } catch (error) {
+      removeLoading(loadingId);
+      addMessage('ai', '❌ Error: ' + error.message, null, false);
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function exportChat(format) {
+  if (!currentChatId) { alert('Tidak ada chat aktif'); return; }
+  try {
+    const response = await fetch(EXPORT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: UID, chatId: currentChatId, format: format }),
+    });
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chat.' + (format === 'pdf' || format === 'html' ? 'html' : format);
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const data = await response.json();
+      alert('Gagal: ' + (data.error || 'Unknown'));
+    }
+  } catch (e) { alert('Error: ' + e.message); }
+  }
+
         const data = await response.json();
         removeLoading(loadingId);
 
