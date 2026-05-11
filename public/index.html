@@ -417,34 +417,71 @@
   }
       }
 
-      const VISION_URL = '/api/vision';
+const READER_URL = '/api/reader';
 
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.type.startsWith('image/')) {
-    if (file.size > 10 * 1024 * 1024) {
-      addMessage('ai', '❌ Ukuran gambar maksimal 10MB', null, false);
-      return;
-    }
+  if (file.size > 15 * 1024 * 1024) {
+    addMessage('ai', '❌ Ukuran file maksimal 15MB', null, false);
+    return;
+  }
 
-    const reader = new FileReader();
+  const reader = new FileReader();
+
+  // Gambar → baca sebagai base64
+  if (file.type.startsWith('image/')) {
     reader.onload = async function(e) {
       const base64 = e.target.result;
-      addMessage('user', '<img src="' + base64 + '" style="max-width:200px;border-radius:8px;" alt="Uploaded"><br><em>Menganalisis gambar...</em>');
+      addMessage('user', '<img src="' + base64 + '" style="max-width:200px;border-radius:8px;" alt="Uploaded"><br><em>Menganalisis...</em>');
+      await processFile(base64, file.name, file.type, true, 'image');
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
 
-      const loadingId = addLoading();
+  // File lainnya → baca sebagai teks
+  reader.onload = async function(e) {
+    const content = e.target.result;
+    const displayContent = content.length > 500
+      ? content.substring(0, 500) + '\n... (' + (file.size/1024).toFixed(1) + ' KB)'
+      : content;
 
-      try {
-        const response = await fetch(VISION_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: base64,
-            prompt: 'Jelaskan gambar ini secara detail. Sebutkan semua objek, warna, bentuk, posisi, suasana, dan detail penting. Jika tidak ada teks, tetap deskripsikan.',
-          }),
-        });
+    addMessage('user', '📄 <b>' + file.name + '</b> (' + (file.size/1024).toFixed(1) + ' KB)<br><em>Menganalisis...</em>');
+    await processFile(content, file.name, file.type, false, file.type);
+  };
+  reader.readAsText(file);
+}
+
+async function processFile(content, fileName, fileType, isBase64, displayType) {
+  const loadingId = addLoading();
+
+  try {
+    const response = await fetch(READER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: content,
+        fileName: fileName,
+        fileType: fileType,
+        isBase64: isBase64 || false,
+      }),
+    });
+
+    const data = await response.json();
+    removeLoading(loadingId);
+
+    if (data.success) {
+      addMessage('ai', '📊 <b>Analisis ' + fileName + ':</b><br><br>' + data.analysis, null, false);
+    } else {
+      addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
+    }
+  } catch (error) {
+    removeLoading(loadingId);
+    addMessage('ai', '❌ Error: ' + error.message, null, false);
+  }
+}
 
         const data = await response.json();
         removeLoading(loadingId);
