@@ -13,24 +13,31 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Timeout 8 detik (Vercel max 10)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: 'Kamu RHF ZERO. Jawab singkat natural 1-3 kalimat.' },
+        { role: 'system', content: 'Kamu RHF ZERO. Jawab SINGKAT, 1-2 kalimat SAJA.' },
         { role: 'user', content: message }
       ],
-      max_tokens: 200
-    });
+      max_tokens: 100,
+      temperature: 0.7
+    }, { signal: controller.signal });
+
+    clearTimeout(timeout);
 
     return res.json({
       mode: 'santai',
       response: completion.choices[0].message.content
     });
   } catch (error) {
+    // Selalu kembalikan JSON, jangan HTML error
     return res.json({
       mode: 'santai',
-      response: 'Halo! Ada yang bisa aku bantu?',
-      error: error.message
+      response: 'Halo! Maaf, ada gangguan. Coba lagi ya 🙏'
     });
   }
 }
