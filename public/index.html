@@ -3,14 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Raksasa — 10 AI Orchestrator</title>
+  <title>RHF ZERO</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: #0a0a0f;
@@ -29,455 +24,185 @@
       justify-content: space-between;
       flex-shrink: 0;
     }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
+    .header-left { display: flex; align-items: center; gap: 12px; }
     .logo {
-      width: 36px;
-      height: 36px;
+      width: 36px; height: 36px;
       background: linear-gradient(135deg, #6c5ce7, #a29bfe);
       border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: #fff;
     }
-
-    .title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .subtitle {
-      font-size: 11px;
-      color: #888;
-      margin-top: 1px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
+    .title { font-size: 18px; font-weight: 700; color: #fff; }
+    .subtitle { font-size: 11px; color: #888; margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
     .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #00e676;
-      animation: pulse 2s infinite;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00e676; animation: pulse 2s infinite;
     }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .status-text {
-      font-size: 12px;
-      color: #888;
-    }
-
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .status-text { font-size: 12px; color: #888; }
     .session-id {
-      font-size: 11px;
-      color: #555;
-      background: #1a1a24;
-      padding: 6px 12px;
-      border-radius: 6px;
-      max-width: 180px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 11px; color: #555; background: #1a1a24;
+      padding: 6px 12px; border-radius: 6px; max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .btn-history {
+      background: #1a1a28; color: #ccc; border: 1px solid #2a2a3a;
+      padding: 8px 14px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; transition: all 0.2s;
+    }
+    .btn-history:hover { background: #24243a; border-color: #6c5ce7; }
 
-    .main {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+    .main { display: flex; flex: 1; overflow: hidden; }
 
     .sidebar {
-      width: 260px;
-      background: #0e0e16;
+      width: 260px; background: #0e0e16;
       border-right: 1px solid #1e1e2e;
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
+      display: flex; flex-direction: column; flex-shrink: 0;
     }
-
-    .sidebar-header {
-      padding: 16px;
-      border-bottom: 1px solid #1e1e2e;
-    }
-
+    .sidebar-header { padding: 16px; border-bottom: 1px solid #1e1e2e; }
     .sidebar-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #666;
-      margin-bottom: 12px;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+      color: #666; margin-bottom: 12px;
     }
-
     .btn-new-chat {
-      width: 100%;
-      padding: 10px;
-      background: #1a1a28;
-      color: #ccc;
-      border: 1px solid #2a2a3a;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
+      width: 100%; padding: 10px; background: #1a1a28; color: #ccc;
+      border: 1px solid #2a2a3a; border-radius: 8px; cursor: pointer;
+      font-size: 13px; transition: all 0.2s;
     }
-
-    .btn-new-chat:hover {
-      background: #24243a;
-      border-color: #6c5ce7;
-    }
-
-    .history-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
+    .btn-new-chat:hover { background: #24243a; border-color: #6c5ce7; }
+    .history-list { flex: 1; overflow-y: auto; padding: 8px; }
     .history-item {
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      color: #999;
-      margin-bottom: 4px;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 12px; color: #999; margin-bottom: 4px;
       transition: all 0.15s;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-
-    .history-item:hover {
-      background: #1a1a28;
-      color: #ccc;
-    }
-
+    .history-item:hover { background: #1a1a28; color: #ccc; }
     .history-item.active {
-      background: #1a1a2e;
-      color: #a29bfe;
-      border: 1px solid #2a2a4a;
+      background: #1a1a2e; color: #a29bfe; border: 1px solid #2a2a4a;
+    }
+    .history-name { font-weight: 500; margin-bottom: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-preview {
+      font-size: 10px; color: #555;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    .chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
+    .chat-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
     }
-
-    .message {
-      display: flex;
-      gap: 12px;
-      max-width: 85%;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-    }
-
-    .message.ai {
-      align-self: flex-start;
-    }
-
+    .message { display: flex; gap: 12px; max-width: 85%; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .message.ai { align-self: flex-start; }
     .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
     }
-
-    .avatar.user {
-      background: #1e1e2e;
-    }
-
-    .avatar.ai {
-      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-    }
-
+    .avatar.user { background: #1e1e2e; }
+    .avatar.ai { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
     .bubble {
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      line-height: 1.6;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      max-width: 100%;
-      overflow-x: auto;
+      padding: 12px 16px; border-radius: 12px; font-size: 14px;
+      line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word;
+      max-width: 100%; overflow-x: auto;
     }
-
-    .bubble.user {
-      background: #1a1a2e;
-      color: #e0e0e0;
-      border: 1px solid #2a2a4a;
-    }
-
-    .bubble.ai {
-      background: #111118;
-      color: #d0d0d0;
-      border: 1px solid #1e1e2e;
-    }
-
+    .bubble.user { background: #1a1a2e; color: #e0e0e0; border: 1px solid #2a2a4a; }
+    .bubble.ai { background: #111118; color: #d0d0d0; border: 1px solid #1e1e2e; }
     .bubble pre {
-      background: #0a0a14;
-      padding: 16px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 8px 0;
-      font-size: 12px;
-      border: 1px solid #1e1e2e;
-      position: relative;
+      background: #0a0a14; padding: 16px; border-radius: 8px;
+      overflow-x: auto; margin: 8px 0; font-size: 12px;
+      border: 1px solid #1e1e2e; position: relative;
     }
-
     .bubble code {
       font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-      font-size: 12px;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-size: 12px; white-space: pre-wrap; word-break: break-word;
     }
-
-    .code-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
+    .code-actions { display: flex; gap: 8px; margin-top: 8px; }
     .btn-copy, .btn-download {
-      padding: 6px 14px;
-      border: 1px solid #2a2a4a;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.2s;
-      background: #1a1a28;
-      color: #ccc;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 6px;
+      cursor: pointer; font-size: 12px; font-weight: 500;
+      transition: all 0.2s; background: #1a1a28; color: #ccc;
+      display: inline-flex; align-items: center; gap: 4px;
     }
-
     .btn-copy:hover, .btn-download:hover {
-      background: #24243a;
-      border-color: #6c5ce7;
-      color: #fff;
+      background: #24243a; border-color: #6c5ce7; color: #fff;
     }
-
     .btn-copy.copied, .btn-download.downloaded {
-      background: #1a3a1a;
-      border-color: #00e676;
-      color: #00e676;
+      background: #1a3a1a; border-color: #00e676; color: #00e676;
     }
-
     .metadata-bar {
-      font-size: 11px;
-      color: #666;
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      font-size: 11px; color: #666; margin-top: 8px;
+      display: flex; flex-wrap: wrap; gap: 8px;
     }
-
     .metadata-bar span {
-      background: #0e0e16;
-      padding: 4px 10px;
-      border-radius: 4px;
+      background: #0e0e16; padding: 4px 10px; border-radius: 4px;
       border: 1px solid #1a1a24;
     }
 
     .input-container {
-      padding: 16px 24px;
-      border-top: 1px solid #1e1e2e;
-      background: #0a0a0f;
-      flex-shrink: 0;
+      padding: 16px 24px; border-top: 1px solid #1e1e2e;
+      background: #0a0a0f; flex-shrink: 0;
     }
-
-    .input-wrapper {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-    }
-
+    .input-wrapper { display: flex; gap: 10px; align-items: flex-end; }
     .input-box {
-      flex: 1;
-      background: #111118;
-      border: 1px solid #1e1e2e;
-      border-radius: 12px;
-      padding: 14px 18px;
-      color: #e0e0e0;
-      font-size: 14px;
-      font-family: inherit;
-      resize: none;
-      min-height: 48px;
-      max-height: 200px;
-      outline: none;
-      transition: border-color 0.2s;
-      line-height: 1.5;
+      flex: 1; background: #111118; border: 1px solid #1e1e2e;
+      border-radius: 12px; padding: 14px 18px; color: #e0e0e0;
+      font-size: 14px; font-family: inherit; resize: none;
+      min-height: 48px; max-height: 200px; outline: none;
+      transition: border-color 0.2s; line-height: 1.5;
     }
-
-    .input-box:focus {
-      border-color: #6c5ce7;
-    }
-
-    .input-box::placeholder {
-      color: #444;
-    }
-
+    .input-box:focus { border-color: #6c5ce7; }
+    .input-box::placeholder { color: #444; }
     .btn-send {
       background: linear-gradient(135deg, #6c5ce7, #8b7cf0);
-      color: #fff;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s;
-      flex-shrink: 0;
+      color: #fff; border: none; padding: 12px 24px;
+      border-radius: 12px; cursor: pointer; font-size: 14px;
+      font-weight: 600; transition: all 0.2s; flex-shrink: 0;
     }
-
     .btn-send:hover {
       background: linear-gradient(135deg, #7d6ff0, #9b8ff5);
       transform: translateY(-1px);
     }
-
     .btn-send:disabled {
-      background: #1e1e2e;
-      color: #555;
-      cursor: not-allowed;
-      transform: none;
+      background: #1e1e2e; color: #555; cursor: not-allowed; transform: none;
     }
-
     .btn-upload {
-      background: #111118;
-      color: #888;
-      border: 1px solid #1e1e2e;
-      padding: 12px 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-      flex-shrink: 0;
+      background: #111118; color: #888; border: 1px solid #1e1e2e;
+      padding: 12px 16px; border-radius: 12px; cursor: pointer;
+      font-size: 14px; transition: all 0.2s; flex-shrink: 0;
     }
-
-    .btn-upload:hover {
-      background: #1a1a28;
-      color: #ccc;
-    }
-
+    .btn-upload:hover { background: #1a1a28; color: #ccc; }
     .mode-indicator {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #555;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: #555; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
+    .mode-indicator .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .mode-indicator .dot.santai { background: #00e676; }
+    .mode-indicator .dot.serius { background: #ff9100; }
 
-    .mode-indicator .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .mode-indicator .dot.santai {
-      background: #00e676;
-    }
-
-    .mode-indicator .dot.serius {
-      background: #ff9100;
-    }
-
-    .loading-dots {
-      display: flex;
-      gap: 4px;
-      padding: 8px 0;
-    }
-
+    .loading-dots { display: flex; gap: 4px; padding: 8px 0; }
     .loading-dots span {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #555;
+      width: 6px; height: 6px; border-radius: 50%; background: #555;
       animation: bounce 1.4s infinite ease-in-out;
     }
-
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
     .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,80%,100%{transform:scale(0.6);} 40%{transform:scale(1);} }
 
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0.6); }
-      40% { transform: scale(1); }
-    }
-
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #1e1e2e;
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #2a2a3a;
-    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
 
     @media (max-width: 768px) {
-      .sidebar {
-        display: none;
-      }
-      .message {
-        max-width: 95%;
-      }
-      .header {
-        padding: 10px 16px;
-      }
-      .chat-messages {
-        padding: 16px;
-      }
-      .input-container {
-        padding: 12px 16px;
-      }
+      .sidebar { display: none; }
+      .message { max-width: 95%; }
+      .header { padding: 10px 16px; }
+      .chat-messages { padding: 16px; }
+      .input-container { padding: 12px 16px; }
     }
   </style>
 </head>
@@ -487,26 +212,25 @@
     <div class="header-left">
       <div class="logo">⚡</div>
       <div>
-        <div class="title">AI Raksasa</div>
-        <div class="subtitle">10 AI • Reti-Reti Double Check</div>
+        <div class="title">RHF ZERO</div>
+        <div class="subtitle">Asisten Cerdas</div>
       </div>
     </div>
     <div class="header-right">
       <div class="status-dot"></div>
       <span class="status-text">Online</span>
-      <span class="session-id" id="sessionId">Session: ...</span>
+      <span class="session-id" id="sessionId">User: ...</span>
+      <button class="btn-history" onclick="toggleHistory()" title="Riwayat Chat">⚙️</button>
     </div>
   </header>
 
   <main class="main">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-title">Riwayat</div>
-        <button class="btn-new-chat" onclick="newChat()">+ Percakapan Baru</button>
+        <div class="sidebar-title">Riwayat Chat</div>
+        <button class="btn-new-chat" onclick="chatBaru()">+ Chat Baru</button>
       </div>
-      <div class="history-list" id="historyList">
-        <div class="history-item active">Percakapan saat ini</div>
-      </div>
+      <div class="history-list" id="historyList"></div>
     </aside>
 
     <div class="chat-container">
@@ -515,10 +239,10 @@
           <div class="avatar ai">🧠</div>
           <div>
             <div class="bubble ai">
-              Halo! Aku AI Raksasa, gabungan 10 AI yang saling melengkapi.<br><br>
-              <b>Mode Santai:</b> Tanya jawab biasa, jawab singkat & natural.<br>
-              <b>Mode Serius:</b> Coding dengan sistem Reti-Reti Double Check.<br><br>
-              Silakan kirim pesan atau upload file kode. 🚀
+              Halo! Aku RHF ZERO, asisten yang siap membantu.<br><br>
+              <b>Mode Santai:</b> Ngobrol biasa, jawab singkat.<br>
+              <b>Mode Serius:</b> Bantu coding & teknis.<br><br>
+              Silakan kirim pesan atau upload file. 🚀
             </div>
           </div>
         </div>
@@ -526,20 +250,12 @@
 
       <div class="input-container">
         <div class="mode-indicator" id="modeIndicator">
-          <span class="dot santai"></span> Mode: Santai (siap jawab)
+          <span class="dot santai"></span> Mode: Santai
         </div>
         <div class="input-wrapper">
-          <button class="btn-upload" onclick="document.getElementById('fileInput').click()" title="Upload file">
-            📎
-          </button>
+          <button class="btn-upload" onclick="document.getElementById('fileInput').click()" title="Upload file">📎</button>
           <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)" accept=".js,.py,.ts,.jsx,.tsx,.html,.css,.json,.md,.txt,.java,.go,.rs,.cpp,.c">
-          <textarea
-            class="input-box"
-            id="userInput"
-            placeholder="Ketik pesan atau minta kode..."
-            rows="1"
-            onkeydown="handleKeyDown(event)"
-          ></textarea>
+          <textarea class="input-box" id="userInput" placeholder="Ketik pesan atau minta kode..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
           <button class="btn-send" id="btnSend" onclick="sendMessage()">Kirim</button>
         </div>
       </div>
@@ -548,33 +264,128 @@
 
   <script>
     const API_URL = '/api/chat';
+    const MEMORY_URL = '/api/memory';
     const DOWNLOAD_URL = '/api/download';
-    let sessionId = generateSessionId();
+
+    const UID = localStorage.getItem('rhf_uid') || 'anon_' + Date.now();
+    if (!localStorage.getItem('rhf_uid')) localStorage.setItem('rhf_uid', UID);
+
     let isProcessing = false;
     let lastRawCode = null;
     let lastFilename = 'kode.txt';
+    let currentChatId = null;
+    let chatList = [];
 
-    document.getElementById('sessionId').textContent = 'Session: ' + sessionId.substring(0, 12) + '...';
+    document.getElementById('sessionId').textContent = 'User: ' + UID.substring(0, 10) + '...';
 
-    function generateSessionId() {
-      return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+    function toggleHistory() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none';
     }
 
-    function newChat() {
-      sessionId = generateSessionId();
-      document.getElementById('sessionId').textContent = 'Session: ' + sessionId.substring(0, 12) + '...';
+    async function initApp() {
+      await loadChatList();
+      if (chatList.length > 0) {
+        await bukaChat(chatList[0].chatId);
+      } else {
+        await chatBaru();
+      }
+    }
+
+    async function loadChatList() {
+      try {
+        const res = await fetch(MEMORY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getChats', uid: UID }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          chatList = data.rooms;
+          renderHistoryList();
+        }
+      } catch (e) { console.error('loadChatList:', e); }
+    }
+
+    function renderHistoryList() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = chatList.map(c => `
+        <div class="history-item${c.chatId === currentChatId ? ' active' : ''}" onclick="bukaChat('${c.chatId}')">
+          <div class="history-name">${escapeHTML(c.nama || 'Chat Baru')}</div>
+          <div class="history-preview">${escapeHTML(c.pesanTerakhir || 'Kosong')}</div>
+        </div>`).join('');
+    }
+
+    async function chatBaru() {
+      try {
+        const res = await fetch(MEMORY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'createChat', uid: UID, data: { nama: 'Chat Baru' } }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentChatId = data.chatId;
+          await loadChatList();
+          bersihkanChat();
+        }
+      } catch (e) {
+        currentChatId = 'chat_local_' + Date.now();
+        bersihkanChat();
+      }
+    }
+
+    async function bukaChat(chatId) {
+      currentChatId = chatId;
+      bersihkanChat();
+      try {
+        const res = await fetch(MEMORY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getMessages', uid: UID, chatId, data: { limit: 100 } }),
+        });
+        const data = await res.json();
+        if (data.success && data.messages.length > 0) {
+          document.getElementById('chatMessages').innerHTML = '';
+          data.messages.forEach(msg => {
+            if (msg.role === 'user') {
+              addMessage('user', msg.content, null, false);
+            } else {
+              const rawCode = extractRawCode(msg.content);
+              const display = formatCodeInResponse(msg.content, rawCode);
+              addMessage('ai', display, rawCode, !!rawCode);
+            }
+          });
+        }
+        renderHistoryList();
+      } catch (e) { console.error('bukaChat:', e); }
+    }
+
+    function bersihkanChat() {
       document.getElementById('chatMessages').innerHTML = `
         <div class="message ai">
           <div class="avatar ai">🧠</div>
           <div>
             <div class="bubble ai">
-              Percakapan baru dimulai. Ada yang bisa dibantu? 🚀
+              Halo! Aku RHF ZERO, asisten yang siap membantu.<br><br>
+              <b>Mode Santai:</b> Ngobrol biasa, jawab singkat.<br>
+              <b>Mode Serius:</b> Bantu coding & teknis.<br><br>
+              Silakan kirim pesan atau upload file. 🚀
             </div>
           </div>
-        </div>
-      `;
-      lastRawCode = null;
-      lastFilename = 'kode.txt';
+        </div>`;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function extractRawCode(text) {
+      if (!text) return null;
+      const match = text.match(/```[\w]*\n([\s\S]*?)```/);
+      if (match) return match[1].trim();
+      return null;
     }
 
     function handleKeyDown(event) {
@@ -586,7 +397,6 @@
 
     async function sendMessage() {
       if (isProcessing) return;
-
       const input = document.getElementById('userInput');
       const message = input.value.trim();
       if (!message) return;
@@ -594,15 +404,14 @@
       isProcessing = true;
       document.getElementById('btnSend').disabled = true;
 
+      if (!currentChatId) await chatBaru();
+
       addMessage('user', message);
       input.value = '';
       input.style.height = 'auto';
 
-      // Deteksi nama file dari pesan
       const fileMatch = message.match(/(?:file|buat|bikinin?|tulis(?:kan)?)\s+(?:html|css|js|py|ts|json|txt)\s*(?:file\s*)?(?:bernama\s+)?(\w+\.\w+)/i);
-      if (fileMatch) {
-        lastFilename = fileMatch[1];
-      }
+      if (fileMatch) lastFilename = fileMatch[1];
 
       const loadingId = addLoading();
 
@@ -610,20 +419,17 @@
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message, sessionId: sessionId })
+          body: JSON.stringify({ message: message, uid: UID, chatId: currentChatId }),
         });
 
         const data = await response.json();
         removeLoading(loadingId);
 
         if (data.mode === 'santai') {
-          addMessage('ai', data.response, null, null);
+          addMessage('ai', data.response, null, false);
           updateModeIndicator('santai');
         } else if (data.mode === 'serius') {
-          // Ekstrak kode dari respons
-          const codeMatch = data.response.match(/```[\w]*\n([\s\S]*?)```/);
-          const rawCode = codeMatch ? codeMatch[1].trim() : data.response;
-
+          const rawCode = extractRawCode(data.response) || data.response;
           lastRawCode = rawCode;
           const displayContent = formatCodeInResponse(data.response, rawCode);
 
@@ -636,9 +442,7 @@
             if (data.metadata.validasiStruktur) metadataHtml += `<span>🔍 ${data.metadata.validasiStruktur}</span>`;
             if (data.metadata.waktuProses) metadataHtml += `<span>⏱️ ${data.metadata.waktuProses}</span>`;
             if (data.metadata.errors) {
-              data.metadata.errors.forEach(e => {
-                metadataHtml += `<span style="color:#ff6b6b">⚠️ ${e}</span>`;
-              });
+              data.metadata.errors.forEach(e => { metadataHtml += `<span style="color:#ff6b6b">⚠️ ${e}</span>`; });
             }
             metadataHtml += '</div>';
           }
@@ -648,6 +452,8 @@
         } else {
           addMessage('ai', data.response || 'Tidak ada respons.', null, false);
         }
+
+        await loadChatList();
       } catch (error) {
         removeLoading(loadingId);
         addMessage('ai', '❌ Error: ' + error.message, null, false);
@@ -660,10 +466,7 @@
 
     function formatCodeInResponse(fullResponse, rawCode) {
       if (!rawCode) return fullResponse;
-      const escaped = rawCode
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+      const escaped = rawCode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const codeBlock = `<pre><code>${escaped}</code></pre>`;
       return fullResponse.replace(/```[\w]*\n[\s\S]*?```/, codeBlock);
     }
@@ -689,8 +492,7 @@
         <div>
           <div class="${bubbleClass}">${content}</div>
           ${actionsHtml}
-        </div>
-      `;
+        </div>`;
 
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
@@ -706,12 +508,9 @@
         <div class="avatar ai">🧠</div>
         <div>
           <div class="bubble ai">
-            <div class="loading-dots">
-              <span></span><span></span><span></span>
-            </div>
+            <div class="loading-dots"><span></span><span></span><span></span></div>
           </div>
-        </div>
-      `;
+        </div>`;
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
       return id;
@@ -725,102 +524,4 @@
     function updateModeIndicator(mode) {
       const indicator = document.getElementById('modeIndicator');
       if (mode === 'santai') {
-        indicator.innerHTML = '<span class="dot santai"></span> Mode: Santai (jawab singkat)';
-      } else {
-        indicator.innerHTML = '<span class="dot serius"></span> Mode: Serius (Reti-Reti Double Check)';
-      }
-    }
-
-    async function copyCode(btn) {
-      const code = decodeURIComponent(btn.getAttribute('data-code'));
-      try {
-        await navigator.clipboard.writeText(code);
-        btn.textContent = '✅ Tersalin!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = '📋 Salin';
-          btn.classList.remove('copied');
-        }, 2000);
-      } catch (e) {
-        // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = code;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        btn.textContent = '✅ Tersalin!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = '📋 Salin';
-          btn.classList.remove('copied');
-        }, 2000);
-      }
-    }
-
-    async function downloadCode(btn) {
-      const code = decodeURIComponent(btn.getAttribute('data-code'));
-      try {
-        const response = await fetch(DOWNLOAD_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: code, filename: lastFilename })
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = lastFilename;
-          a.click();
-          URL.revokeObjectURL(url);
-          btn.textContent = '✅ Terunduh!';
-          btn.classList.add('downloaded');
-          setTimeout(() => {
-            btn.textContent = '📥 Download';
-            btn.classList.remove('downloaded');
-          }, 2000);
-        } else {
-                  // Fallback: download via data URL
-          const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = lastFilename;
-          a.click();
-          URL.revokeObjectURL(url);
-          btn.textContent = '✅ Terunduh!';
-          btn.classList.add('downloaded');
-          setTimeout(() => {
-            btn.textContent = '📥 Download';
-            btn.classList.remove('downloaded');
-          }, 2000);
-        }
-      } catch (e) {
-        // Fallback langsung
-        const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = lastFilename;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    }
-
-    function handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const content = e.target.result;
-        const truncated = content.substring(0, 500) + (content.length > 500 ? '\n... (file terpotong untuk preview)' : '');
-        document.getElementById('userInput').value =
-          `Tolong analisis file ini:\n\n[Nama file: ${file.name}]\n[Ukuran: ${(file.size / 1024).toFixed(1)} KB]\n\n\`\`\`\n${truncated}\n\`\`\``;
-      };
-      reader.readAsText(file);
-    }
-  </script>
-</body>
-</html>
+        indicator.innerHTML = '<span class="dot santai">
