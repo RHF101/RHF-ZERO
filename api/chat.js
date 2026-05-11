@@ -1,11 +1,12 @@
 // ============================================================
-// AI RAKSASA — api/chat.js
-// 10 AI Orchestrator dengan Reti-Reti Double Check
+// RHF ZERO — api/chat.js
+// 10 AI Orchestrator + Reti-Reti + Memory
 // ============================================================
 
 import { Groq } from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
+import { saveMessage, createChatRoom } from './memory.js';
 
 // ============================================================
 // INISIALISASI 10 AI CLIENTS
@@ -52,41 +53,11 @@ const nvidia = new OpenAI({
 });
 
 // ============================================================
-// CLOUDFLARE FUNCTION
-// ============================================================
-
-async function callCloudflare(prompt) {
-  try {
-    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || 'skipped';
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3-8b-instruct`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.CLOUDFLARE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      }
-    );
-    const data = await res.json();
-    if (data.success && data.result?.response) {
-      return data.result.response;
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-// ============================================================
 // HELPER: Ekstrak kode dari respons AI
 // ============================================================
 
 function extractCode(text) {
-  if (!text) return text;
+  if (!text) return '';
   const match = text.match(/```[\w]*\n([\s\S]*?)```/);
   if (match) return match[1].trim();
   const match2 = text.match(/```([\s\S]*?)```/);
@@ -95,7 +66,7 @@ function extractCode(text) {
 }
 
 // ============================================================
-// HELPER: Validasi kode sederhana
+// HELPER: Validasi kode
 // ============================================================
 
 function validateCode(code) {
@@ -105,23 +76,17 @@ function validateCode(code) {
   if (openCurly !== closeCurly) {
     issues.push(`Bracket {} tidak seimbang: ${openCurly} vs ${closeCurly}`);
   }
-
   const openParen = (code.match(/\(/g) || []).length;
   const closeParen = (code.match(/\)/g) || []).length;
   if (openParen !== closeParen) {
     issues.push(`Kurung () tidak seimbang: ${openParen} vs ${closeParen}`);
   }
-
   const openBracket = (code.match(/\[/g) || []).length;
   const closeBracket = (code.match(/\]/g) || []).length;
   if (openBracket !== closeBracket) {
     issues.push(`Bracket [] tidak seimbang: ${openBracket} vs ${closeBracket}`);
   }
-
-  return {
-    valid: issues.length === 0,
-    issues,
-  };
+  return { valid: issues.length === 0, issues };
 }
 
 // ============================================================
@@ -133,31 +98,23 @@ function detectIntent(message) {
     'buat', 'buatkan', 'bikinin', 'bikin', 'tulis', 'tuliskan',
     'kode', 'code', 'coding', 'program', 'aplikasi', 'fungsi',
     'function', 'class', 'script', 'implementasi', 'debug',
-    'fix', 'perbaiki', 'error', 'buatkan fungsi', 'buatkan kode',
-    'generate', 'buatin', '.js', '.py', '.ts', '.html', '.css',
+    'fix', 'perbaiki', 'error', 'generate', 'buatin',
+    '.js', '.py', '.ts', '.html', '.css', '.java', '.go', '.rs',
     'server', 'api', 'route', 'endpoint', 'backend', 'frontend',
     'database', 'query', 'react', 'vue', 'angular', 'node', 'express',
-    'sorting', 'filter', 'loop', 'array', 'object',
+    'sorting', 'filter', 'loop', 'array', 'object', 'komponen',
+    'fullstack', 'rest api', 'json', 'xml', 'sql', 'nosql',
   ];
 
   const lowerMessage = message.toLowerCase();
-  const matchCount = codeKeywords.filter(keyword =>
-    lowerMessage.includes(keyword)
-  ).length;
+  const matchCount = codeKeywords.filter(kw => lowerMessage.includes(kw)).length;
 
-  if (
-    lowerMessage.includes('mode serius') ||
-    lowerMessage.includes('coding mode') ||
-    lowerMessage.includes('```') ||
-    matchCount >= 2
-  ) {
+  if (lowerMessage.includes('mode serius') || lowerMessage.includes('coding mode') || lowerMessage.includes('```')) {
     return 'serius';
   }
-
   if (lowerMessage.includes('mode santai')) {
     return 'santai';
   }
-
   return matchCount >= 2 ? 'serius' : 'santai';
 }
 
@@ -171,7 +128,7 @@ export default async function handler(req, res) {
   }
 
   const startTime = Date.now();
-  const { message, sessionId } = req.body;
+  const { message, uid, chatId } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Pesan tidak boleh kosong' });
@@ -182,38 +139,53 @@ export default async function handler(req, res) {
   }
 
   const intent = detectIntent(message);
-  console.log(`[${intent.toUpperCase()}] ${message.substring(0, 80)}`);
+  const currentChatId = chatId || 'chat_' + Date.now();
+
+  // Simpan pesan user ke memory (async, jangan ditunggu)
+  if (uid) {
+    saveMessage(uid, currentChatId, 'user', message, intent).catch(() => {});
+  }
 
   try {
+    let result;
     if (intent === 'santai') {
-      return await handleSantai(message, sessionId);
+      result = await handleSantai(message, uid, currentChatId);
     } else {
-      return await handleSerius(message, sessionId, startTime);
+      result = await handleSerius(message, uid, currentChatId, startTime);
     }
+
+    // Simpan respons AI ke memory
+    if (uid) {
+      saveMessage(uid, currentChatId, 'ai', result.response, intent, result.metadata || null).catch(() => {});
+    }
+
+    return res.json({
+      ...result,
+      chatId: currentChatId,
+    });
   } catch (error) {
     console.error('Handler error:', error.message);
     return res.status(500).json({
       mode: 'error',
       response: 'Maaf, terjadi kesalahan internal.',
       error: error.message,
-      sessionId: sessionId || '',
+      chatId: currentChatId,
     });
   }
 }
 
 // ============================================================
-// MODE SANTAI — Groq cepat, jawab singkat & natural
+// MODE SANTAI
 // ============================================================
 
-async function handleSantai(message, sessionId) {
+async function handleSantai(message, uid, chatId) {
   try {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
-          content:
-            'Kamu adalah teman ngobrol yang ramah. Jawab SINGKAT, natural, seperti manusia biasa. MAKSIMAL 2-3 kalimat. Jangan panjang-panjang. Jangan pakai format markdown atau list. Kalau ditanya kabar, jawab santai.',
+          content: 'Kamu adalah RHF ZERO, asisten yang ramah. Jawab SINGKAT, natural, 1-3 kalimat max. Jangan panjang. Jangan sebutkan kamu AI atau gabungan.',
         },
         { role: 'user', content: message },
       ],
@@ -221,22 +193,20 @@ async function handleSantai(message, sessionId) {
       temperature: 0.8,
     });
 
-    const response = completion.choices[0]?.message?.content || 'Maaf, tidak ada respons.';
+    const response = completion.choices[0]?.message?.content || 'Halo! Ada yang bisa aku bantu?';
 
-    return res.json({
+    return {
       mode: 'santai',
-      response: response,
-      provider: 'Groq (Llama 3 70B)',
-      sessionId: sessionId || '',
-    });
+      response,
+      provider: 'Groq',
+    };
   } catch (error) {
     console.error('Santai error:', error.message);
-    return res.json({
+    return {
       mode: 'santai',
       response: 'Halo! Ada yang bisa aku bantu?',
       provider: 'fallback',
-      sessionId: sessionId || '',
-    });
+    };
   }
 }
 
@@ -244,18 +214,13 @@ async function handleSantai(message, sessionId) {
 // MODE SERIUS — Full 10 AI Pipeline + Reti-Reti
 // ============================================================
 
-async function handleSerius(message, sessionId, startTime) {
-  const results = {
-    generate: [],
-    review: [],
-    final: null,
-    errors: [],
-  };
+async function handleSerius(message, uid, chatId, startTime) {
+  const results = { generate: [], review: [], errors: [] };
 
   // ---------- FASE 1: GENERATE PARALEL (6 AI) ----------
-  const generatePrompt = `Kamu adalah AI coding expert.
+  const generatePrompt = `Kamu adalah coding expert.
 
-TUGAS: Tulis kode lengkap untuk permintaan ini:
+TUGAS: Tulis kode lengkap untuk:
 "${message}"
 
 ATURAN:
@@ -269,41 +234,69 @@ ATURAN:
 TULIS KODE SEKARANG:`;
 
   const generateTasks = [
-    { name: 'Groq', fn: () => groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
-    { name: 'Together', fn: () => together.chat.completions.create({
-      model: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
-    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({
-      model: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
-    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({
-      model: 'llama3.3-70b',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
-    { name: 'Mistral', fn: () => mistralClient.chat.completions.create({
-      model: 'mistral-large-latest',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
-    { name: 'DeepInfra', fn: () => deepinfra.chat.completions.create({
-      model: 'meta-llama/Llama-3.3-70B-Instruct',
-      messages: [{ role: 'user', content: generatePrompt }],
-      max_tokens: 4096, temperature: 0.3,
-    })},
+    {
+      name: 'Groq',
+      fn: () =>
+        groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
+    {
+      name: 'Together',
+      fn: () =>
+        together.chat.completions.create({
+          model: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
+    {
+      name: 'Fireworks',
+      fn: () =>
+        fireworks.chat.completions.create({
+          model: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
+    {
+      name: 'Cerebras',
+      fn: () =>
+        cerebras.chat.completions.create({
+          model: 'llama3.3-70b',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
+    {
+      name: 'Mistral',
+      fn: () =>
+        mistralClient.chat.completions.create({
+          model: 'mistral-large-latest',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
+    {
+      name: 'DeepInfra',
+      fn: () =>
+        deepinfra.chat.completions.create({
+          model: 'meta-llama/Llama-3.3-70B-Instruct',
+          messages: [{ role: 'user', content: generatePrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+        }),
+    },
   ];
 
-  const generateResults = await Promise.allSettled(
-    generateTasks.map(t => t.fn())
-  );
+  const generateResults = await Promise.allSettled(generateTasks.map((t) => t.fn()));
 
   generateResults.forEach((result, i) => {
     const name = generateTasks[i].name;
@@ -319,16 +312,14 @@ TULIS KODE SEKARANG:`;
   });
 
   // ---------- FASE 2: REVIEW DENGAN GEMINI ----------
-  const successfulCodes = results.generate.filter(g => g.success && g.code);
+  const successfulCodes = results.generate.filter((g) => g.success && g.code);
   let bestCode = '';
 
   if (successfulCodes.length > 0) {
-    // Pilih kode terbaik (paling panjang & valid)
-    const validCodes = successfulCodes.filter(g => g.validation?.valid);
-    const candidateCodes = validCodes.length > 0 ? validCodes : successfulCodes;
-    bestCode = candidateCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
+    const validCodes = successfulCodes.filter((g) => g.validation?.valid);
+    const candidates = validCodes.length > 0 ? validCodes : successfulCodes;
+    bestCode = candidates.sort((a, b) => b.code.length - a.code.length)[0].code;
 
-    // Review dengan Gemini
     try {
       const reviewPrompt = `Kamu adalah CODE REVIEWER.
 
@@ -346,7 +337,6 @@ ${bestCode}`;
       const reviewResult = await geminiModel.generateContent(reviewPrompt);
       const reviewText = reviewResult.response.text();
       const reviewedCode = extractCode(reviewText) || bestCode;
-
       const validationAfter = validateCode(reviewedCode);
 
       results.review.push({
@@ -367,15 +357,15 @@ ${bestCode}`;
 
   // ---------- FASE 3: FINAL OUTPUT ----------
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  const providersUsed = results.generate.filter(g => g.success).length;
-
+  const providersUsed = results.generate.filter((g) => g.success).length;
   const finalValidation = validateCode(bestCode);
 
-  const response = bestCode.length > 3000
-    ? bestCode.substring(0, 3000) + '\n\n// ... (kode dilanjutkan, total ' + bestCode.length + ' karakter)'
-    : bestCode;
+  const response =
+    bestCode.length > 3000
+      ? bestCode.substring(0, 3000) + '\n\n// ... (kode dilanjutkan, total ' + bestCode.length + ' karakter)'
+      : bestCode;
 
-  return res.json({
+  return {
     mode: 'serius',
     response: response,
     metadata: {
@@ -386,6 +376,5 @@ ${bestCode}`;
       errors: results.errors.length > 0 ? results.errors : null,
       waktuProses: elapsed + ' detik',
     },
-    sessionId: sessionId || '',
-  });
-    }
+  };
+}
