@@ -20,7 +20,6 @@
       flex-direction: column;
     }
 
-    /* ========== HEADER ========== */
     .header {
       background: #111118;
       border-bottom: 1px solid #1e1e2e;
@@ -98,14 +97,12 @@
       white-space: nowrap;
     }
 
-    /* ========== MAIN LAYOUT ========== */
     .main {
       display: flex;
       flex: 1;
       overflow: hidden;
     }
 
-    /* ========== SIDEBAR ========== */
     .sidebar {
       width: 260px;
       background: #0e0e16;
@@ -175,7 +172,6 @@
       border: 1px solid #2a2a4a;
     }
 
-    /* ========== CHAT AREA ========== */
     .chat-container {
       flex: 1;
       display: flex;
@@ -239,6 +235,8 @@
       line-height: 1.6;
       word-wrap: break-word;
       overflow-wrap: break-word;
+      max-width: 100%;
+      overflow-x: auto;
     }
 
     .bubble.user {
@@ -267,53 +265,59 @@
     .bubble code {
       font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    .copy-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #1e1e2e;
-      color: #888;
-      border: none;
-      padding: 4px 10px;
-      border-radius: 4px;
+    .code-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-copy, .btn-download {
+      padding: 6px 14px;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 500;
       transition: all 0.2s;
+      background: #1a1a28;
+      color: #ccc;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    .copy-btn:hover {
-      background: #2a2a3a;
+    .btn-copy:hover, .btn-download:hover {
+      background: #24243a;
+      border-color: #6c5ce7;
       color: #fff;
+    }
+
+    .btn-copy.copied, .btn-download.downloaded {
+      background: #1a3a1a;
+      border-color: #00e676;
+      color: #00e676;
     }
 
     .metadata-bar {
       font-size: 11px;
-      color: #555;
-      margin-top: 6px;
+      color: #666;
+      margin-top: 8px;
       display: flex;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .metadata-bar span {
       background: #0e0e16;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 4px;
+      border: 1px solid #1a1a24;
     }
 
-    .download-link {
-      color: #a29bfe;
-      text-decoration: none;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .download-link:hover {
-      text-decoration: underline;
-    }
-
-    /* ========== INPUT AREA ========== */
     .input-container {
       padding: 16px 24px;
       border-top: 1px solid #1e1e2e;
@@ -419,7 +423,6 @@
       background: #ff9100;
     }
 
-    /* ========== LOADING ========== */
     .loading-dots {
       display: flex;
       gap: 4px;
@@ -442,7 +445,6 @@
       40% { transform: scale(1); }
     }
 
-    /* ========== SCROLLBAR ========== */
     ::-webkit-scrollbar {
       width: 6px;
     }
@@ -460,24 +462,19 @@
       background: #2a2a3a;
     }
 
-    /* ========== RESPONSIVE ========== */
     @media (max-width: 768px) {
       .sidebar {
         display: none;
       }
-
       .message {
         max-width: 95%;
       }
-
       .header {
         padding: 10px 16px;
       }
-
       .chat-messages {
         padding: 16px;
       }
-
       .input-container {
         padding: 12px 16px;
       }
@@ -486,7 +483,6 @@
 </head>
 <body>
 
-  <!-- HEADER -->
   <header class="header">
     <div class="header-left">
       <div class="logo">⚡</div>
@@ -502,10 +498,7 @@
     </div>
   </header>
 
-  <!-- MAIN -->
   <main class="main">
-
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title">Riwayat</div>
@@ -516,10 +509,8 @@
       </div>
     </aside>
 
-    <!-- CHAT -->
     <div class="chat-container">
       <div class="chat-messages" id="chatMessages">
-        <!-- Welcome -->
         <div class="message ai">
           <div class="avatar ai">🧠</div>
           <div>
@@ -533,7 +524,6 @@
         </div>
       </div>
 
-      <!-- INPUT -->
       <div class="input-container">
         <div class="mode-indicator" id="modeIndicator">
           <span class="dot santai"></span> Mode: Santai (siap jawab)
@@ -557,13 +547,12 @@
   </main>
 
   <script>
-    // ============================================================
-    // AI RAKSASA — Frontend Chat
-    // ============================================================
-
     const API_URL = '/api/chat';
+    const DOWNLOAD_URL = '/api/download';
     let sessionId = generateSessionId();
     let isProcessing = false;
+    let lastRawCode = null;
+    let lastFilename = 'kode.txt';
 
     document.getElementById('sessionId').textContent = 'Session: ' + sessionId.substring(0, 12) + '...';
 
@@ -584,6 +573,8 @@
           </div>
         </div>
       `;
+      lastRawCode = null;
+      lastFilename = 'kode.txt';
     }
 
     function handleKeyDown(event) {
@@ -598,64 +589,68 @@
 
       const input = document.getElementById('userInput');
       const message = input.value.trim();
-
       if (!message) return;
 
       isProcessing = true;
       document.getElementById('btnSend').disabled = true;
 
-      // Tambah pesan user
       addMessage('user', message);
       input.value = '';
       input.style.height = 'auto';
 
-      // Tambah loading
+      // Deteksi nama file dari pesan
+      const fileMatch = message.match(/(?:file|buat|bikinin?|tulis(?:kan)?)\s+(?:html|css|js|py|ts|json|txt)\s*(?:file\s*)?(?:bernama\s+)?(\w+\.\w+)/i);
+      if (fileMatch) {
+        lastFilename = fileMatch[1];
+      }
+
       const loadingId = addLoading();
 
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: message,
-            sessionId: sessionId
-          })
+          body: JSON.stringify({ message: message, sessionId: sessionId })
         });
 
         const data = await response.json();
-
-        // Hapus loading
         removeLoading(loadingId);
 
-        // Tampilkan respons
         if (data.mode === 'santai') {
-          addMessage('ai', data.response, null);
+          addMessage('ai', data.response, null, null);
           updateModeIndicator('santai');
         } else if (data.mode === 'serius') {
-          let content = data.response;
+          // Ekstrak kode dari respons
+          const codeMatch = data.response.match(/```[\w]*\n([\s\S]*?)```/);
+          const rawCode = codeMatch ? codeMatch[1].trim() : data.response;
 
-          // Tambah metadata
+          lastRawCode = rawCode;
+          const displayContent = formatCodeInResponse(data.response, rawCode);
+
+          let metadataHtml = '';
           if (data.metadata) {
-            content += `
-              <div class="metadata-bar">
-                <span>📏 ${data.metadata.panjangCode || '?'} karakter</span>
-                <span>✅ Dicek: ${data.metadata.dicekOleh || 'Reti-Reti'}</span>
-                <span>📚 ${data.metadata.risetDari || '?'} sumber</span>
-              </div>
-            `;
+            metadataHtml += '<div class="metadata-bar">';
+            if (data.metadata.panjangCode) metadataHtml += `<span>📏 ${data.metadata.panjangCode} karakter</span>`;
+            if (data.metadata.providersDigunakan) metadataHtml += `<span>🤖 ${data.metadata.providersDigunakan}</span>`;
+            if (data.metadata.direviewOleh) metadataHtml += `<span>✅ Review: ${data.metadata.direviewOleh}</span>`;
+            if (data.metadata.validasiStruktur) metadataHtml += `<span>🔍 ${data.metadata.validasiStruktur}</span>`;
+            if (data.metadata.waktuProses) metadataHtml += `<span>⏱️ ${data.metadata.waktuProses}</span>`;
+            if (data.metadata.errors) {
+              data.metadata.errors.forEach(e => {
+                metadataHtml += `<span style="color:#ff6b6b">⚠️ ${e}</span>`;
+              });
+            }
+            metadataHtml += '</div>';
           }
 
-          // Tambah download link
-          if (data.downloadUrl) {
-            content += `<br><a class="download-link" href="${data.downloadUrl}" download>📥 Download Kode</a>`;
-          }
-
-          addMessage('ai', content, data.response);
+          addMessage('ai', displayContent + metadataHtml, rawCode, true);
           updateModeIndicator('serius');
+        } else {
+          addMessage('ai', data.response || 'Tidak ada respons.', null, false);
         }
       } catch (error) {
         removeLoading(loadingId);
-        addMessage('ai', '❌ Error: ' + error.message, null);
+        addMessage('ai', '❌ Error: ' + error.message, null, false);
       }
 
       isProcessing = false;
@@ -663,27 +658,37 @@
       document.getElementById('userInput').focus();
     }
 
-    function addMessage(role, content, rawCode) {
+    function formatCodeInResponse(fullResponse, rawCode) {
+      if (!rawCode) return fullResponse;
+      const escaped = rawCode
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      const codeBlock = `<pre><code>${escaped}</code></pre>`;
+      return fullResponse.replace(/```[\w]*\n[\s\S]*?```/, codeBlock);
+    }
+
+    function addMessage(role, content, rawCode, showActions) {
       const messages = document.getElementById('chatMessages');
       const div = document.createElement('div');
       div.className = 'message ' + role;
-
       const avatarEmoji = role === 'user' ? '👤' : '🧠';
       const bubbleClass = 'bubble ' + role;
 
-      // Format kode dalam bubble
-      let formattedContent = content;
-      if (rawCode) {
-        // Escape HTML dulu
-        const escaped = rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        formattedContent = formattedContent.replace(rawCode, 
-          `<pre><code>${escaped}</code><button class="copy-btn" onclick="copyCode(this)">Salin</button></pre>`);
+      let actionsHtml = '';
+      if (showActions && rawCode) {
+        actionsHtml = `
+          <div class="code-actions">
+            <button class="btn-copy" onclick="copyCode(this)" data-code="${encodeURIComponent(rawCode)}">📋 Salin</button>
+            <button class="btn-download" onclick="downloadCode(this)" data-code="${encodeURIComponent(rawCode)}">📥 Download</button>
+          </div>`;
       }
 
       div.innerHTML = `
         <div class="avatar ${role}">${avatarEmoji}</div>
         <div>
-          <div class="${bubbleClass}">${formattedContent}</div>
+          <div class="${bubbleClass}">${content}</div>
+          ${actionsHtml}
         </div>
       `;
 
@@ -726,29 +731,96 @@
       }
     }
 
-    function copyCode(btn) {
-      const pre = btn.parentElement;
-      const code = pre.querySelector('code').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        btn.textContent = 'Tersalin!';
-        setTimeout(() => { btn.textContent = 'Salin'; }, 2000);
-      });
+    async function copyCode(btn) {
+      const code = decodeURIComponent(btn.getAttribute('data-code'));
+      try {
+        await navigator.clipboard.writeText(code);
+        btn.textContent = '✅ Tersalin!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Salin';
+          btn.classList.remove('copied');
+        }, 2000);
+      } catch (e) {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✅ Tersalin!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Salin';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+    }
+
+    async function downloadCode(btn) {
+      const code = decodeURIComponent(btn.getAttribute('data-code'));
+      try {
+        const response = await fetch(DOWNLOAD_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: code, filename: lastFilename })
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = lastFilename;
+          a.click();
+          URL.revokeObjectURL(url);
+          btn.textContent = '✅ Terunduh!';
+          btn.classList.add('downloaded');
+          setTimeout(() => {
+            btn.textContent = '📥 Download';
+            btn.classList.remove('downloaded');
+          }, 2000);
+        } else {
+                  // Fallback: download via data URL
+          const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = lastFilename;
+          a.click();
+          URL.revokeObjectURL(url);
+          btn.textContent = '✅ Terunduh!';
+          btn.classList.add('downloaded');
+          setTimeout(() => {
+            btn.textContent = '📥 Download';
+            btn.classList.remove('downloaded');
+          }, 2000);
+        }
+      } catch (e) {
+        // Fallback langsung
+        const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = lastFilename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     }
 
     function handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(e) {
         const content = e.target.result;
         const truncated = content.substring(0, 500) + (content.length > 500 ? '\n... (file terpotong untuk preview)' : '');
-        document.getElementById('userInput').value = 
+        document.getElementById('userInput').value =
           `Tolong analisis file ini:\n\n[Nama file: ${file.name}]\n[Ukuran: ${(file.size / 1024).toFixed(1)} KB]\n\n\`\`\`\n${truncated}\n\`\`\``;
       };
       reader.readAsText(file);
     }
   </script>
-
 </body>
-  </html>
+</html>
