@@ -237,7 +237,13 @@
       </div>
     </div>
   </main>
-
+// Cek login
+const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
+if (!userData || !userData.uid) {
+  window.location.href = '/login.html';
+}
+const UID = userData.uid;
+  
   <script>
     // ============================================================
     // RHF ZERO — Frontend Chat
