@@ -1,7 +1,8 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// 10 AI Orchestrator + Rete-Rete + Memory
-// Mode Santai + Serius (Batch: Generate → Review → Verifikasi)
+// 10 AI FULL POWER — Batch System (Generate → Review → Verifikasi)
+// Groq | Gemini | OpenRouter (DeepSeek+Mistral) | Together | Fireworks
+// SambaNova | Cerebras | NVIDIA Nemotron | CFG Labs
 // ============================================================
 
 import { Groq } from 'groq-sdk';
@@ -10,42 +11,56 @@ import OpenAI from 'openai';
 import { saveMessage } from './memory.js';
 
 // ============================================================
-// INISIALISASI CLIENTS
+// 10 AI CLIENTS
 // ============================================================
 
+// 1. Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+// 2. Gemini
 const geminiAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const geminiModel = geminiAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+// 3. OpenRouter (DeepSeek + Mistral)
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+// 4. Together AI
 const together = new OpenAI({
   baseURL: 'https://api.together.xyz/v1',
   apiKey: process.env.TOGETHER_API_KEY,
 });
 
+// 5. Fireworks
 const fireworks = new OpenAI({
   baseURL: 'https://api.fireworks.ai/inference/v1',
   apiKey: process.env.FIREWORKS_API_KEY,
 });
 
-const deepinfra = new OpenAI({
-  baseURL: 'https://api.deepinfra.com/v1/openai',
-  apiKey: process.env.DEEPINFRA_API_KEY,
+// 6. SambaNova
+const sambanova = new OpenAI({
+  baseURL: 'https://api.sambanova.ai/v1',
+  apiKey: process.env.SAMBANOVA_API_KEY,
 });
 
+// 7. Cerebras
 const cerebras = new OpenAI({
   baseURL: 'https://api.cerebras.ai/v1',
   apiKey: process.env.CEREBRAS_API_KEY,
 });
 
-const mistralClient = new OpenAI({
-  baseURL: 'https://api.mistral.ai/v1',
-  apiKey: process.env.MISTRAL_API_KEY,
+// 8. NVIDIA Nemotron
+const nvidia = new OpenAI({
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+  apiKey: process.env.NVIDIA_API_KEY,
+});
+
+// 9. CFG Labs
+const cfglabs = new OpenAI({
+  baseURL: 'https://api.cfg.cfglabs.com/v1',
+  apiKey: process.env.CFG_LABS_KEY || process.env.CFG_LABS_API_KEY || '',
 });
 
 // ============================================================
@@ -65,10 +80,6 @@ function validateCode(code) {
   if ((code.match(/\(/g) || []).length !== (code.match(/\)/g) || []).length) issues.push('() tidak seimbang');
   return { valid: issues.length === 0, issues };
 }
-
-// ============================================================
-// DETEKTOR
-// ============================================================
 
 function detectIntent(message) {
   const keywords = ['buat', 'buatkan', 'bikinin', 'tulis', 'kode', 'code', 'coding', 'fungsi', 'function', 'class', 'script', 'debug', 'fix', 'perbaiki', 'generate', '.js', '.py', '.ts', '.html', '.css', 'server', 'api', 'route', 'endpoint', 'backend', 'frontend', 'database', 'react', 'vue', 'node', 'express', 'sorting', 'loop', 'array'];
@@ -104,9 +115,7 @@ export default async function handler(req, res) {
     } else {
       result = await modeSerius(message, startTime);
     }
-
     if (uid) saveMessage(uid, currentChatId, 'ai', result.response, intent, result.metadata || null).catch(() => {});
-
     return res.json({ ...result, chatId: currentChatId });
   } catch (error) {
     return res.status(500).json({ mode: 'error', response: 'Maaf, terjadi kesalahan.', chatId: currentChatId });
@@ -135,30 +144,33 @@ async function modeSantai(message) {
 }
 
 // ============================================================
-// MODE SERIUS — BATCH SYSTEM
+// MODE SERIUS — 10 AI BATCH SYSTEM
 // ============================================================
 
 async function modeSerius(message, startTime) {
   const errors = [];
   let bestCode = '';
   let providersUsed = 0;
+  let reviewed = false;
+  let verified = false;
 
-  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI, indentasi 2 spasi. Kode HARUS LENGKAP.`;
+  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI, indentasi 2 spasi. Kode HARUS LENGKAP. Jangan jelaskan.`;
 
   // ============================================================
-  // BATCH 1: GENERATE — satu per satu, tidak paralel
+  // BATCH 1: GENERATE (10 AI, satu per satu, tidak paralel)
   // ============================================================
   const generators = [
-    { name: 'Groq', fn: () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
-    { name: 'Mistral', fn: () => mistralClient.chat.completions.create({ model: 'mistral-large-latest', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
-    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
-    { name: 'Together', fn: () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
-    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
-    { name: 'DeepInfra', fn: () => deepinfra.chat.completions.create({ model: 'meta-llama/Llama-3.3-70B-Instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 }) },
+    { name: 'Groq', fn: () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'OpenRouter-Mistral', fn: () => openrouter.chat.completions.create({ model: 'mistralai/mistral-large', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'Together', fn: () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'SambaNova', fn: () => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'NVIDIA-Nemotron', fn: () => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
+    { name: 'CFG-Labs', fn: () => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
   ];
 
   const generatedCodes = [];
-
   for (const gen of generators) {
     try {
       const res = await gen.fn();
@@ -180,48 +192,43 @@ async function modeSerius(message, startTime) {
     };
   }
 
-  // Pilih kode terbaik (paling panjang = paling lengkap)
   bestCode = generatedCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
 
   // ============================================================
-  // BATCH 2: REVIEW — Gemini periksa
+  // BATCH 2: REVIEW — Gemini
   // ============================================================
-  let reviewed = false;
   try {
     const reviewRes = await geminiModel.generateContent(
       `REVIEW kode berikut. Cari typo, bug, format error, kode kepotong. PERBAIKI. Output KODE FINAL dalam markdown code block.\n\nKODE:\n${bestCode}`
     );
-    const reviewText = reviewRes.response.text();
-    const fixed = extractCode(reviewText);
+    const fixed = extractCode(reviewRes.response.text());
     if (fixed && fixed.length > 20) {
       bestCode = fixed;
       reviewed = true;
     }
   } catch (e) {
-    errors.push('Review: ' + e.message);
+    errors.push('Gemini Review: ' + e.message);
   }
 
   // ============================================================
-  // BATCH 3: VERIFIKASI — DeepSeek cek ulang
+  // BATCH 3: VERIFIKASI — DeepSeek via OpenRouter
   // ============================================================
-  let verified = false;
   try {
     const verifyRes = await openrouter.chat.completions.create({
       model: 'deepseek/deepseek-chat',
       messages: [
         { role: 'system', content: 'Cek kode ini untuk typo, logic error, dan kelengkapan. Kalau ada masalah, perbaiki. Output KODE FINAL dalam markdown code block.' },
-        { role: 'user', content: bestCode.substring(0, 6000) }
+        { role: 'user', content: bestCode.substring(0, 8000) }
       ],
-      max_tokens: 4096, temperature: 0.1
+      max_tokens: 8192, temperature: 0.1
     });
-    const verifyText = verifyRes.choices[0]?.message?.content || '';
-    const fixed = extractCode(verifyText);
+    const fixed = extractCode(verifyRes.choices[0]?.message?.content || '');
     if (fixed && fixed.length > 20) {
       bestCode = fixed;
       verified = true;
     }
   } catch (e) {
-    errors.push('Verifikasi: ' + e.message);
+    errors.push('DeepSeek Verifikasi: ' + e.message);
   }
 
   // ============================================================
@@ -230,19 +237,15 @@ async function modeSerius(message, startTime) {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   const validation = validateCode(bestCode);
 
-  const response = bestCode.length > 3500
-    ? bestCode.substring(0, 3500) + '\n\n// ... (total ' + bestCode.length + ' karakter)'
-    : bestCode;
-
   return {
     mode: 'serius',
-    response,
+    response: bestCode,
     metadata: {
       panjangCode: bestCode.length,
-      providersDigunakan: providersUsed + ' AI (Generate: ' + providersUsed + ', Review: ' + (reviewed ? '1' : '0') + ', Verifikasi: ' + (verified ? '1' : '0') + ')',
+      providersDigunakan: providersUsed + ' AI (Gen: ' + providersUsed + ', Rev: ' + (reviewed ? '1' : '0') + ', Ver: ' + (verified ? '1' : '0') + ')',
       validasiStruktur: validation.valid ? '✅ Valid' : '⚠️ ' + validation.issues.join('; '),
       errors: errors.length > 0 ? errors : null,
       waktuProses: elapsed + ' detik',
     },
   };
-                                                            }
+    }
