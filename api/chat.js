@@ -248,4 +248,4 @@ async function modeSerius(message, startTime) {
       waktuProses: elapsed + ' detik',
     },
   };
-    }
+}
