@@ -1,6 +1,6 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// 10 AI — Rete-Rete System (Potong → Generate → Review → Verifikasi → Rakit)
+// 10 AI Survival Mode — Cek Mati/Hidup, Retry, Skip, Teknik Muter
 // ============================================================
 
 import { Groq } from 'groq-sdk';
@@ -49,7 +49,7 @@ const nvidia = new OpenAI({
 
 const cfglabs = new OpenAI({
   baseURL: 'https://api.cfg.cfglabs.com/v1',
-  apiKey: process.env.CFG_LABS_KEY || process.env.CFG_LABS_API_KEY || '',
+  apiKey: process.env.CFG_LABS_KEY || '',
 });
 
 // ============================================================
@@ -63,68 +63,78 @@ function extractCode(text) {
   return text.trim();
 }
 
-function validateCode(code) {
-  const issues = [];
-  if ((code.match(/\{/g) || []).length !== (code.match(/\}/g) || []).length) issues.push('{} tidak seimbang');
-  if ((code.match(/\(/g) || []).length !== (code.match(/\)/g) || []).length) issues.push('() tidak seimbang');
-  return { valid: issues.length === 0, issues };
-}
-
 function detectIntent(message) {
-  const keywords = ['buat', 'buatkan', 'bikinin', 'tulis', 'kode', 'code', 'coding', 'fungsi', 'function', 'class', 'script', 'debug', 'fix', 'perbaiki', 'generate', '.js', '.py', '.ts', '.html', '.css', 'server', 'api', 'route', 'endpoint', 'backend', 'frontend', 'database', 'react', 'vue', 'node', 'express', 'sorting', 'loop', 'array'];
+  const keywords = ['buat', 'buatkan', 'bikinin', 'tulis', 'kode', 'code', 'coding', 'fungsi', 'function', 'class', 'script', 'debug', 'fix', 'perbaiki', 'generate', '.js', '.py', '.ts', '.html', '.css', 'server', 'api', 'route', 'endpoint', 'database', 'react', 'vue', 'node', 'express', 'sorting', 'loop', 'array'];
   const m = message.toLowerCase();
-  const count = keywords.filter(k => m.includes(k)).length;
   if (m.includes('mode serius') || m.includes('```')) return 'serius';
   if (m.includes('mode santai')) return 'santai';
-  return count >= 2 ? 'serius' : 'santai';
+  return keywords.filter(k => m.includes(k)).length >= 2 ? 'serius' : 'santai';
 }
 
 // ============================================================
-// SPLITTER: Potong kode per 400 baris
+// RETRY WRAPPER — Coba 3x dengan delay
 // ============================================================
 
-function splitIntoChunks(code) {
-  const lines = code.split('\n');
-  const chunks = [];
-  let i = 0;
-  while (i < lines.length) {
-    chunks.push(lines.slice(i, i + 400).join('\n'));
-    i += 400;
+async function withRetry(fn, retries = 3, delayMs = 1500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fn();
+      if (res) return res;
+    } catch (e) {}
+    if (i < retries - 1) {
+      await new Promise(r => setTimeout(r, delayMs));
+    }
   }
-  return chunks;
-}
-
-function assembleChunks(chunks) {
-  return chunks.join('\n');
+  return null;
 }
 
 // ============================================================
-// CEK AI HIDUP/MATI — per command
+// CEK SATU AI — Hidup atau Mati
 // ============================================================
 
-async function checkAIs() {
-  const testPrompt = 'Jawab "OK" saja.';
+async function checkOneAI(name, fn) {
+  try {
+    const res = await fn();
+    if (!res) return { name, alive: false, reason: 'null response' };
+    
+    const content = res.choices?.[0]?.message?.content || res.response?.text?.() || '';
+    if (!content || content.length < 1) return { name, alive: false, reason: 'empty response' };
+    
+    return { name, alive: true };
+  } catch (e) {
+    return { name, alive: false, reason: e.message.substring(0, 80) };
+  }
+}
+
+// ============================================================
+// CEK SEMUA AI — CEPAT (5 detik timeout per AI)
+// ============================================================
+
+async function checkAllAIs() {
+  const testPrompt = 'Say OK';
   const tests = [
-    { name: 'Groq', fn: () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'Gemini', fn: () => geminiModel.generateContent(testPrompt) },
-    { name: 'OpenRouter', fn: () => openrouter.chat.completions.create({ model: 'deepseek/deepseek-chat', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'Together', fn: () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'SambaNova', fn: () => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'NVIDIA', fn: () => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
-    { name: 'CFG-Labs', fn: () => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'Groq', fn: () => withRetry(() => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'Gemini', fn: () => withRetry(() => geminiModel.generateContent(testPrompt), 2, 1000) },
+    { name: 'OpenRouter', fn: () => withRetry(() => openrouter.chat.completions.create({ model: 'deepseek/deepseek-chat', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'Together', fn: () => withRetry(() => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'Fireworks', fn: () => withRetry(() => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'SambaNova', fn: () => withRetry(() => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'Cerebras', fn: () => withRetry(() => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'NVIDIA', fn: () => withRetry(() => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
+    { name: 'CFG-Labs', fn: () => withRetry(() => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }), 2, 1000) },
   ];
 
-  const results = await Promise.allSettled(tests.map(t => t.fn()));
+  const results = await Promise.allSettled(tests.map(t => checkOneAI(t.name, t.fn)));
+  
   const alive = [];
   const dead = [];
-
-  results.forEach((r, i) => {
-    if (r.status === 'fulfilled') {
-      alive.push(tests[i].name);
+  
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.alive) {
+      alive.push(r.value.name);
     } else {
-      dead.push(tests[i].name + ': ' + (r.reason?.message || 'mati'));
+      const info = r.status === 'fulfilled' ? r.value : { name: 'unknown', reason: 'crash' };
+      dead.push(info.name + ': ' + (info.reason || 'timeout'));
     }
   });
 
@@ -142,7 +152,6 @@ export default async function handler(req, res) {
   const { message, uid, chatId } = req.body;
 
   if (!message) return res.status(400).json({ error: 'Pesan kosong' });
-  if (message.length > 20000) return res.status(400).json({ error: 'Terlalu panjang' });
 
   const intent = detectIntent(message);
   const currentChatId = chatId || 'chat_' + Date.now();
@@ -159,7 +168,7 @@ export default async function handler(req, res) {
     if (uid) saveMessage(uid, currentChatId, 'ai', result.response, intent, result.metadata || null).catch(() => {});
     return res.json({ ...result, chatId: currentChatId });
   } catch (error) {
-    return res.status(500).json({ mode: 'error', response: 'Maaf, terjadi kesalahan.', chatId: currentChatId });
+    return res.status(500).json({ mode: 'error', response: 'Maaf, error internal.', chatId: currentChatId });
   }
 }
 
@@ -172,45 +181,41 @@ async function modeSantai(message) {
     const res = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: 'Kamu RHF ZERO, asisten ramah. Jawab SINGKAT, 1-3 kalimat max, natural.' },
+        { role: 'system', content: 'Kamu RHF ZERO. Jawab SINGKAT, 1-3 kalimat, natural.' },
         { role: 'user', content: message }
       ],
-      max_tokens: 200,
-      temperature: 0.8
+      max_tokens: 200, temperature: 0.8
     });
-    return { mode: 'santai', response: res.choices[0].message.content, provider: 'Groq' };
+    return { mode: 'santai', response: res.choices[0].message.content };
   } catch (e) {
-    return { mode: 'santai', response: 'Halo! Ada yang bisa aku bantu?', provider: 'fallback' };
+    return { mode: 'santai', response: 'Halo! Ada yang bisa aku bantu?' };
   }
 }
 
 // ============================================================
-// MODE SERIUS — RETE-RETE FULL SYSTEM
+// MODE SERIUS — SURVIVAL MODE
 // ============================================================
 
 async function modeSerius(message, startTime) {
   const errors = [];
-  let finalCode = '';
+  let bestCode = '';
   let providersUsed = 0;
-  let reviewed = false;
-  let verified = false;
-  let assembled = false;
 
-  // ---- FASE 0: CEK AI HIDUP/MATI ----
-  const { alive, dead } = await checkAIs();
+  // ---- FASE 0: CEK AI ----
+  const { alive, dead } = await checkAllAIs();
   dead.forEach(d => errors.push('MATI: ' + d));
 
   if (alive.length === 0) {
     return {
       mode: 'serius',
-      response: 'Semua AI mati. Coba lagi nanti.',
-      metadata: { errors, providersDigunakan: '0' }
+      response: '⚠️ Semua AI sedang mati atau kena limit. Coba lagi nanti.',
+      metadata: { aiHidup: 0, aiMati: dead.length, daftarMati: dead, waktuProses: ((Date.now() - startTime) / 1000).toFixed(1) + ' detik' }
     };
   }
 
-  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI, indentasi 2 spasi. Kode HARUS LENGKAP.`;
+  // ---- FASE 1: GENERATE (hanya AI hidup, retry 3x) ----
+  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI. Kode HARUS LENGKAP.`;
 
-  // ---- FASE 1: GENERATE (hanya AI yang hidup) ----
   const generatorMap = {
     'Groq': () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
     'OpenRouter': () => openrouter.chat.completions.create({ model: 'mistralai/mistral-large', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
@@ -223,81 +228,73 @@ async function modeSerius(message, startTime) {
   };
 
   const generatedCodes = [];
+
   for (const name of alive) {
     const fn = generatorMap[name];
     if (!fn) continue;
-    try {
-      const res = await fn();
-      const code = extractCode(res.choices[0]?.message?.content || '');
-      if (code && code.length > 20) {
-        generatedCodes.push({ provider: name, code });
-        providersUsed++;
-      }
-    } catch (e) {
-      errors.push(name + ': error generate');
+
+    const res = await withRetry(async () => {
+      const r = await fn();
+      const code = extractCode(r.choices[0]?.message?.content || '');
+      if (code && code.length > 20) return code;
+      return null;
+    }, 3, 1500);
+
+    if (res) {
+      generatedCodes.push({ provider: name, code: res });
+      providersUsed++;
+    } else {
+      errors.push(name + ': gagal setelah 3x retry');
     }
   }
 
   if (generatedCodes.length === 0) {
     return {
       mode: 'serius',
-      response: 'Semua AI gagal generate.',
-      metadata: { errors, providersDigunakan: '0' }
+      response: '⚠️ Semua AI hidup tapi gagal generate. Coba lagi.',
+      metadata: { aiHidup: alive.length, aiMati: dead.length, errors, waktuProses: ((Date.now() - startTime) / 1000).toFixed(1) + ' detik' }
     };
   }
 
   // Pilih kode terbaik
-  let bestCode = generatedCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
+  bestCode = generatedCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
 
-  // ---- FASE 2: POTONG JADI CHUNK 400 BARIS ----
-  const chunks = splitIntoChunks(bestCode);
+  // ---- FASE 2: REVIEW (Gemini, kalau hidup) ----
+  if (alive.includes('Gemini')) {
+    const reviewed = await withRetry(async () => {
+      const r = await geminiModel.generateContent(`REVIEW kode. Cari typo, bug, format error. PERBAIKI. Output KODE FINAL.\n\nKODE:\n${bestCode}`);
+      return extractCode(r.response.text());
+    }, 2, 1000);
 
-  // ---- FASE 3: REVIEW PER CHUNK (Gemini) ----
-  const reviewedChunks = [];
-  for (let i = 0; i < chunks.length; i++) {
-    try {
-      const reviewRes = await geminiModel.generateContent(
-        `REVIEW potongan kode berikut. Cari typo, bug, format error. PERBAIKI jika ada. Output KODE SAJA.\n\nKODE:\n${chunks[i]}`
-      );
-      const fixed = extractCode(reviewRes.response.text());
-      reviewedChunks.push(fixed || chunks[i]);
-      reviewed = true;
-    } catch (e) {
-      reviewedChunks.push(chunks[i]);
-      errors.push('Review chunk ' + (i + 1) + ': ' + e.message);
+    if (reviewed && reviewed.length > 20) {
+      bestCode = reviewed;
+    } else {
+      errors.push('Gemini review gagal');
     }
   }
-  bestCode = assembleChunks(reviewedChunks);
 
-  // ---- FASE 4: VERIFIKASI (DeepSeek via OpenRouter) ----
+  // ---- FASE 3: VERIFIKASI (OpenRouter DeepSeek, kalau hidup) ----
   if (alive.includes('OpenRouter')) {
-    try {
-      const verifyRes = await openrouter.chat.completions.create({
+    const verified = await withRetry(async () => {
+      const r = await openrouter.chat.completions.create({
         model: 'deepseek/deepseek-chat',
         messages: [
           { role: 'system', content: 'Verifikasi kode. Cek typo, logic, kelengkapan. Perbaiki. Output KODE FINAL.' },
-          { role: 'user', content: bestCode.substring(0, 15000) }
+          { role: 'user', content: bestCode.substring(0, 12000) }
         ],
         max_tokens: 8192, temperature: 0.1
       });
-      const fixed = extractCode(verifyRes.choices[0]?.message?.content || '');
-      if (fixed && fixed.length > 20) {
-        bestCode = fixed;
-        verified = true;
-      }
-    } catch (e) {
-      errors.push('Verifikasi: ' + e.message);
+      return extractCode(r.choices[0]?.message?.content || '');
+    }, 2, 1000);
+
+    if (verified && verified.length > 20) {
+      bestCode = verified;
+    } else {
+      errors.push('Verifikasi gagal');
     }
   }
 
-  // ---- FASE 5: RAKIT ULANG + VALIDASI ----
-  const finalValidation = validateCode(bestCode);
-  if (!finalValidation.valid) {
-    errors.push('Kode final masih ada issues: ' + finalValidation.issues.join('; '));
-  }
-  assembled = true;
-
-  // ---- FINAL OUTPUT ----
+  // ---- FINAL ----
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   return {
@@ -307,9 +304,9 @@ async function modeSerius(message, startTime) {
       panjangCode: bestCode.length,
       aiHidup: alive.length,
       aiMati: dead.length,
-      daftarMati: dead,
-      providersDigunakan: providersUsed + ' AI (Gen: ' + providersUsed + ', Rev: ' + (reviewed ? 'Yes' : 'No') + ', Ver: ' + (verified ? 'Yes' : 'No') + ', Rakit: Yes)',
-      validasiStruktur: finalValidation.valid ? '✅ Valid' : '⚠️ ' + finalValidation.issues.join('; '),
+      daftarAIHidup: alive,
+      daftarAIMati: dead,
+      providersDigunakan: providersUsed + ' AI generate',
       errors: errors.length > 0 ? errors : null,
       waktuProses: elapsed + ' detik',
     },
