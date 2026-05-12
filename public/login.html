@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RHF ZERO — Login</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -21,69 +19,102 @@
       background: #111118;
       border: 1px solid #1e1e2e;
       border-radius: 16px;
-      padding: 40px;
+      padding: 32px;
       text-align: center;
-      max-width: 400px;
+      max-width: 380px;
       width: 90%;
     }
     .logo {
-      width: 56px;
-      height: 56px;
+      width: 56px; height: 56px;
       background: linear-gradient(135deg, #6c5ce7, #a29bfe);
       border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      margin: 0 auto 20px;
-      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin: 0 auto 16px; color: #fff;
     }
-    h1 { font-size: 22px; margin-bottom: 8px; color: #fff; }
-    p { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .btn-masuk {
-      width: 100%;
-      padding: 14px;
+    h1 { font-size: 22px; margin-bottom: 4px; color: #fff; }
+    p { font-size: 12px; color: #888; margin-bottom: 24px; }
+
+    .btn-google {
+      width: 100%; padding: 12px; background: #fff; color: #333;
+      border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; transition: all 0.2s; margin-bottom: 8px;
+    }
+    .btn-google:hover { background: #f0f0f0; }
+
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      color: #444; font-size: 11px; margin: 16px 0;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #1e1e2e;
+    }
+
+    .input-box {
+      width: 100%; padding: 12px; background: #0a0a14;
+      border: 1px solid #1e1e2e; border-radius: 10px;
+      color: #e0e0e0; font-size: 13px; outline: none;
+      margin-bottom: 8px; transition: border 0.2s;
+    }
+    .input-box:focus { border-color: #6c5ce7; }
+
+    .btn-code {
+      width: 100%; padding: 12px;
       background: linear-gradient(135deg, #6c5ce7, #8b7cf0);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
       transition: all 0.2s;
     }
-    .btn-masuk:hover {
-      background: linear-gradient(135deg, #7d6ff0, #9b8ff5);
-      transform: translateY(-1px);
+    .btn-code:hover { transform: translateY(-1px); }
+
+    .mode-switch {
+      font-size: 11px; color: #666; margin-top: 8px; cursor: pointer;
     }
-    .btn-masuk:disabled {
-      background: #1e1e2e;
-      color: #555;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .status {
-      margin-top: 16px;
-      font-size: 12px;
-    }
+    .mode-switch:hover { color: #a29bfe; }
+
+    .status { margin-top: 12px; font-size: 12px; min-height: 18px; }
     .status.error { color: #ff6b6b; }
     .status.success { color: #00e676; }
+    .footer-text { margin-top: 20px; font-size: 10px; color: #333; }
   </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
 <div class="login-box">
   <div class="logo">⚡</div>
   <h1>RHF ZERO</h1>
-  <p>Masuk otomatis tanpa daftar.<br>Data kamu tersimpan aman.</p>
-  <button class="btn-masuk" id="btnLogin" onclick="masuk()">🚀 Masuk Sekarang</button>
+  <p>Login untuk menyimpan chat & history</p>
+
+  <!-- Google Login Button -->
+  <button class="btn-google" onclick="loginGoogle()">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Login dengan Google
+  </button>
+
+  <div class="divider">atau pakai kode</div>
+
+  <!-- Kode Login -->
+  <div id="kodeArea">
+    <input class="input-box" id="inputKode" type="text" placeholder="Masukkan kode akses" autocomplete="off">
+    <button class="btn-code" onclick="loginDenganKode()">🔑 Masuk dengan Kode</button>
+    <div class="mode-switch" onclick="toggleKodeMode()">✏️ Belum punya kode? Daftar di sini</div>
+  </div>
+
+  <div id="daftarArea" style="display:none;">
+    <input class="input-box" id="inputKodeBaru" type="text" placeholder="Buat kode akses baru (min 6 karakter)" autocomplete="off">
+    <button class="btn-code" onclick="daftarKode()">✅ Buat Kode & Masuk</button>
+    <div class="mode-switch" onclick="toggleKodeMode()">🔙 Sudah punya kode? Login di sini</div>
+  </div>
+
   <div class="status" id="status"></div>
+  <div class="footer-text">Data kamu aman • Tidak disebar</div>
 </div>
 
 <script>
-  // ============================================================
-  // FIREBASE CONFIG
-  // ============================================================
+  // Firebase Init
   const firebaseConfig = {
     apiKey: "AIzaSyDNFXLa8WGAqhLnc8RrLLTgP3nLWvXkd1w",
     authDomain: "rhf-confrims.firebaseapp.com",
@@ -92,54 +123,121 @@
     messagingSenderId: "631231605918",
     appId: "1:631231605918:web:5a7eeeb61beeae91d65f8f"
   };
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
   const statusEl = document.getElementById('status');
-  const btnLogin = document.getElementById('btnLogin');
+  const KODE_KEY = 'rhf_kode';
 
-  // ============================================================
-  // CEK APAKAH SUDAH LOGIN
-  // ============================================================
-  auth.onAuthStateChanged(async (user) => {
+  // Cek kalau sudah login
+  auth.onAuthStateChanged((user) => {
     if (user) {
-      statusEl.textContent = '✅ Sudah masuk. Mengalihkan...';
-      statusEl.className = 'status success';
-      // Simpan UID ke localStorage
-      localStorage.setItem('rhf_uid', user.uid);
-      // Alihkan ke main app
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 800);
+      simpanDanMasuk(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
     }
   });
 
-  // ============================================================
-  // FUNGSI MASUK
-  // ============================================================
-  async function masuk() {
-    btnLogin.disabled = true;
-    btnLogin.textContent = 'Menghubungkan...';
+  // Cek kode lokal
+  const savedKode = localStorage.getItem(KODE_KEY);
+  if (savedKode) {
+    // Coba login dengan kode tersimpan
+    loginDenganKodeTersimpan(savedKode);
+  }
+
+  function simpanDanMasuk(uid, name, email, photo) {
+    localStorage.setItem('rhf_user', JSON.stringify({ uid, name, email, photo }));
+    statusEl.textContent = '✅ Berhasil! Mengalihkan...';
+    statusEl.className = 'status success';
+    setTimeout(() => { window.location.href = '/'; }, 600);
+  }
+
+  // === GOOGLE LOGIN ===
+  async function loginGoogle() {
+    statusEl.textContent = 'Menghubungkan...';
+    statusEl.className = 'status';
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      await auth.signInWithPopup(provider);
+    } catch (error) {
+      statusEl.textContent = '❌ ' + error.message;
+      statusEl.className = 'status error';
+    }
+  }
+
+  // === KODE LOGIN ===
+  function toggleKodeMode() {
+    const kodeArea = document.getElementById('kodeArea');
+    const daftarArea = document.getElementById('daftarArea');
+    if (kodeArea.style.display === 'none') {
+      kodeArea.style.display = 'block';
+      daftarArea.style.display = 'none';
+    } else {
+      kodeArea.style.display = 'none';
+      daftarArea.style.display = 'block';
+    }
     statusEl.textContent = '';
+  }
+
+  async function loginDenganKode() {
+    const kode = document.getElementById('inputKode').value.trim();
+    if (!kode || kode.length < 6) {
+      statusEl.textContent = '❌ Kode minimal 6 karakter';
+      statusEl.className = 'status error';
+      return;
+    }
+    statusEl.textContent = 'Memeriksa...';
     statusEl.className = 'status';
 
     try {
-      const result = await auth.signInAnonymously();
-      statusEl.textContent = '✅ Berhasil! Mengalihkan...';
-      statusEl.className = 'status success';
-      localStorage.setItem('rhf_uid', result.user.uid);
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
-    } catch (error) {
-      statusEl.textContent = '❌ Gagal: ' + error.message;
+      await auth.signInWithEmailAndPassword(kode + '@rhf-zero.app', kode);
+    } catch (e) {
+      // Kalau belum terdaftar, coba daftar
+      try {
+        await auth.createUserWithEmailAndPassword(kode + '@rhf-zero.app', kode);
+      } catch (e2) {
+        statusEl.textContent = '❌ Kode tidak valid';
+        statusEl.className = 'status error';
+        return;
+      }
+    }
+
+    localStorage.setItem(KODE_KEY, kode);
+    const user = auth.currentUser;
+    if (user) {
+      simpanDanMasuk(user.uid, 'User-' + kode.substring(0, 6), kode + '@rhf-zero.app', '');
+    }
+  }
+
+  async function loginDenganKodeTersimpan(kode) {
+    try {
+      await auth.signInWithEmailAndPassword(kode + '@rhf-zero.app', kode);
+    } catch (e) {
+      // Kode expired atau salah, hapus
+      localStorage.removeItem(KODE_KEY);
+    }
+  }
+
+  async function daftarKode() {
+    const kode = document.getElementById('inputKodeBaru').value.trim();
+    if (!kode || kode.length < 6) {
+      statusEl.textContent = '❌ Kode minimal 6 karakter';
       statusEl.className = 'status error';
-      btnLogin.disabled = false;
-      btnLogin.textContent = '🚀 Coba Lagi';
+      return;
+    }
+    statusEl.textContent = 'Membuat akun...';
+    statusEl.className = 'status';
+
+    try {
+      await auth.createUserWithEmailAndPassword(kode + '@rhf-zero.app', kode);
+      localStorage.setItem(KODE_KEY, kode);
+      const user = auth.currentUser;
+      if (user) {
+        simpanDanMasuk(user.uid, 'User-' + kode.substring(0, 6), kode + '@rhf-zero.app', '');
+      }
+    } catch (e) {
+      statusEl.textContent = '❌ ' + e.message;
+      statusEl.className = 'status error';
     }
   }
 </script>
-
 </body>
 </html>
