@@ -1,8 +1,6 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// 10 AI FULL POWER — Batch System (Generate → Review → Verifikasi)
-// Groq | Gemini | OpenRouter (DeepSeek+Mistral) | Together | Fireworks
-// SambaNova | Cerebras | NVIDIA Nemotron | CFG Labs
+// 10 AI — Rete-Rete System (Potong → Generate → Review → Verifikasi → Rakit)
 // ============================================================
 
 import { Groq } from 'groq-sdk';
@@ -14,50 +12,41 @@ import { saveMessage } from './memory.js';
 // 10 AI CLIENTS
 // ============================================================
 
-// 1. Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// 2. Gemini
 const geminiAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const geminiModel = geminiAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-// 3. OpenRouter (DeepSeek + Mistral)
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-// 4. Together AI
 const together = new OpenAI({
   baseURL: 'https://api.together.xyz/v1',
   apiKey: process.env.TOGETHER_API_KEY,
 });
 
-// 5. Fireworks
 const fireworks = new OpenAI({
   baseURL: 'https://api.fireworks.ai/inference/v1',
   apiKey: process.env.FIREWORKS_API_KEY,
 });
 
-// 6. SambaNova
 const sambanova = new OpenAI({
   baseURL: 'https://api.sambanova.ai/v1',
   apiKey: process.env.SAMBANOVA_API_KEY,
 });
 
-// 7. Cerebras
 const cerebras = new OpenAI({
   baseURL: 'https://api.cerebras.ai/v1',
   apiKey: process.env.CEREBRAS_API_KEY,
 });
 
-// 8. NVIDIA Nemotron
 const nvidia = new OpenAI({
   baseURL: 'https://integrate.api.nvidia.com/v1',
   apiKey: process.env.NVIDIA_API_KEY,
 });
 
-// 9. CFG Labs
 const cfglabs = new OpenAI({
   baseURL: 'https://api.cfg.cfglabs.com/v1',
   apiKey: process.env.CFG_LABS_KEY || process.env.CFG_LABS_API_KEY || '',
@@ -88,6 +77,58 @@ function detectIntent(message) {
   if (m.includes('mode serius') || m.includes('```')) return 'serius';
   if (m.includes('mode santai')) return 'santai';
   return count >= 2 ? 'serius' : 'santai';
+}
+
+// ============================================================
+// SPLITTER: Potong kode per 400 baris
+// ============================================================
+
+function splitIntoChunks(code) {
+  const lines = code.split('\n');
+  const chunks = [];
+  let i = 0;
+  while (i < lines.length) {
+    chunks.push(lines.slice(i, i + 400).join('\n'));
+    i += 400;
+  }
+  return chunks;
+}
+
+function assembleChunks(chunks) {
+  return chunks.join('\n');
+}
+
+// ============================================================
+// CEK AI HIDUP/MATI — per command
+// ============================================================
+
+async function checkAIs() {
+  const testPrompt = 'Jawab "OK" saja.';
+  const tests = [
+    { name: 'Groq', fn: () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'Gemini', fn: () => geminiModel.generateContent(testPrompt) },
+    { name: 'OpenRouter', fn: () => openrouter.chat.completions.create({ model: 'deepseek/deepseek-chat', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'Together', fn: () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'SambaNova', fn: () => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'NVIDIA', fn: () => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+    { name: 'CFG-Labs', fn: () => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: testPrompt }], max_tokens: 5 }) },
+  ];
+
+  const results = await Promise.allSettled(tests.map(t => t.fn()));
+  const alive = [];
+  const dead = [];
+
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      alive.push(tests[i].name);
+    } else {
+      dead.push(tests[i].name + ': ' + (r.reason?.message || 'mati'));
+    }
+  });
+
+  return { alive, dead };
 }
 
 // ============================================================
@@ -144,106 +185,131 @@ async function modeSantai(message) {
 }
 
 // ============================================================
-// MODE SERIUS — 10 AI BATCH SYSTEM
+// MODE SERIUS — RETE-RETE FULL SYSTEM
 // ============================================================
 
 async function modeSerius(message, startTime) {
   const errors = [];
-  let bestCode = '';
+  let finalCode = '';
   let providersUsed = 0;
   let reviewed = false;
   let verified = false;
+  let assembled = false;
 
-  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI, indentasi 2 spasi. Kode HARUS LENGKAP. Jangan jelaskan.`;
+  // ---- FASE 0: CEK AI HIDUP/MATI ----
+  const { alive, dead } = await checkAIs();
+  dead.forEach(d => errors.push('MATI: ' + d));
 
-  // ============================================================
-  // BATCH 1: GENERATE (10 AI, satu per satu, tidak paralel)
-  // ============================================================
-  const generators = [
-    { name: 'Groq', fn: () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'OpenRouter-Mistral', fn: () => openrouter.chat.completions.create({ model: 'mistralai/mistral-large', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'Together', fn: () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'Fireworks', fn: () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'SambaNova', fn: () => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'Cerebras', fn: () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'NVIDIA-Nemotron', fn: () => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-    { name: 'CFG-Labs', fn: () => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }) },
-  ];
+  if (alive.length === 0) {
+    return {
+      mode: 'serius',
+      response: 'Semua AI mati. Coba lagi nanti.',
+      metadata: { errors, providersDigunakan: '0' }
+    };
+  }
+
+  const prompt = `Kamu coding expert. Tulis kode lengkap untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI, indentasi 2 spasi. Kode HARUS LENGKAP.`;
+
+  // ---- FASE 1: GENERATE (hanya AI yang hidup) ----
+  const generatorMap = {
+    'Groq': () => groq.chat.completions.create({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'OpenRouter': () => openrouter.chat.completions.create({ model: 'mistralai/mistral-large', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'Together': () => together.chat.completions.create({ model: 'mistralai/Mixtral-8x22B-Instruct-v0.1', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'Fireworks': () => fireworks.chat.completions.create({ model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'SambaNova': () => sambanova.chat.completions.create({ model: 'Meta-Llama-3.1-405B-Instruct', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'Cerebras': () => cerebras.chat.completions.create({ model: 'llama3.3-70b', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'NVIDIA': () => nvidia.chat.completions.create({ model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+    'CFG-Labs': () => cfglabs.chat.completions.create({ model: 'default', messages: [{ role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.3 }),
+  };
 
   const generatedCodes = [];
-  for (const gen of generators) {
+  for (const name of alive) {
+    const fn = generatorMap[name];
+    if (!fn) continue;
     try {
-      const res = await gen.fn();
+      const res = await fn();
       const code = extractCode(res.choices[0]?.message?.content || '');
       if (code && code.length > 20) {
-        generatedCodes.push({ provider: gen.name, code });
+        generatedCodes.push({ provider: name, code });
         providersUsed++;
       }
     } catch (e) {
-      errors.push(gen.name + ': gagal');
+      errors.push(name + ': error generate');
     }
   }
 
   if (generatedCodes.length === 0) {
     return {
       mode: 'serius',
-      response: 'Maaf, semua AI gagal generate kode.',
-      metadata: { errors, providersDigunakan: '0', waktuProses: ((Date.now() - startTime) / 1000).toFixed(1) + ' detik' }
+      response: 'Semua AI gagal generate.',
+      metadata: { errors, providersDigunakan: '0' }
     };
   }
 
-  bestCode = generatedCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
+  // Pilih kode terbaik
+  let bestCode = generatedCodes.sort((a, b) => b.code.length - a.code.length)[0].code;
 
-  // ============================================================
-  // BATCH 2: REVIEW — Gemini
-  // ============================================================
-  try {
-    const reviewRes = await geminiModel.generateContent(
-      `REVIEW kode berikut. Cari typo, bug, format error, kode kepotong. PERBAIKI. Output KODE FINAL dalam markdown code block.\n\nKODE:\n${bestCode}`
-    );
-    const fixed = extractCode(reviewRes.response.text());
-    if (fixed && fixed.length > 20) {
-      bestCode = fixed;
+  // ---- FASE 2: POTONG JADI CHUNK 400 BARIS ----
+  const chunks = splitIntoChunks(bestCode);
+
+  // ---- FASE 3: REVIEW PER CHUNK (Gemini) ----
+  const reviewedChunks = [];
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      const reviewRes = await geminiModel.generateContent(
+        `REVIEW potongan kode berikut. Cari typo, bug, format error. PERBAIKI jika ada. Output KODE SAJA.\n\nKODE:\n${chunks[i]}`
+      );
+      const fixed = extractCode(reviewRes.response.text());
+      reviewedChunks.push(fixed || chunks[i]);
       reviewed = true;
+    } catch (e) {
+      reviewedChunks.push(chunks[i]);
+      errors.push('Review chunk ' + (i + 1) + ': ' + e.message);
     }
-  } catch (e) {
-    errors.push('Gemini Review: ' + e.message);
+  }
+  bestCode = assembleChunks(reviewedChunks);
+
+  // ---- FASE 4: VERIFIKASI (DeepSeek via OpenRouter) ----
+  if (alive.includes('OpenRouter')) {
+    try {
+      const verifyRes = await openrouter.chat.completions.create({
+        model: 'deepseek/deepseek-chat',
+        messages: [
+          { role: 'system', content: 'Verifikasi kode. Cek typo, logic, kelengkapan. Perbaiki. Output KODE FINAL.' },
+          { role: 'user', content: bestCode.substring(0, 15000) }
+        ],
+        max_tokens: 8192, temperature: 0.1
+      });
+      const fixed = extractCode(verifyRes.choices[0]?.message?.content || '');
+      if (fixed && fixed.length > 20) {
+        bestCode = fixed;
+        verified = true;
+      }
+    } catch (e) {
+      errors.push('Verifikasi: ' + e.message);
+    }
   }
 
-  // ============================================================
-  // BATCH 3: VERIFIKASI — DeepSeek via OpenRouter
-  // ============================================================
-  try {
-    const verifyRes = await openrouter.chat.completions.create({
-      model: 'deepseek/deepseek-chat',
-      messages: [
-        { role: 'system', content: 'Cek kode ini untuk typo, logic error, dan kelengkapan. Kalau ada masalah, perbaiki. Output KODE FINAL dalam markdown code block.' },
-        { role: 'user', content: bestCode.substring(0, 8000) }
-      ],
-      max_tokens: 8192, temperature: 0.1
-    });
-    const fixed = extractCode(verifyRes.choices[0]?.message?.content || '');
-    if (fixed && fixed.length > 20) {
-      bestCode = fixed;
-      verified = true;
-    }
-  } catch (e) {
-    errors.push('DeepSeek Verifikasi: ' + e.message);
+  // ---- FASE 5: RAKIT ULANG + VALIDASI ----
+  const finalValidation = validateCode(bestCode);
+  if (!finalValidation.valid) {
+    errors.push('Kode final masih ada issues: ' + finalValidation.issues.join('; '));
   }
+  assembled = true;
 
-  // ============================================================
-  // FINAL
-  // ============================================================
+  // ---- FINAL OUTPUT ----
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  const validation = validateCode(bestCode);
 
   return {
     mode: 'serius',
     response: bestCode,
     metadata: {
       panjangCode: bestCode.length,
-      providersDigunakan: providersUsed + ' AI (Gen: ' + providersUsed + ', Rev: ' + (reviewed ? '1' : '0') + ', Ver: ' + (verified ? '1' : '0') + ')',
-      validasiStruktur: validation.valid ? '✅ Valid' : '⚠️ ' + validation.issues.join('; '),
+      aiHidup: alive.length,
+      aiMati: dead.length,
+      daftarMati: dead,
+      providersDigunakan: providersUsed + ' AI (Gen: ' + providersUsed + ', Rev: ' + (reviewed ? 'Yes' : 'No') + ', Ver: ' + (verified ? 'Yes' : 'No') + ', Rakit: Yes)',
+      validasiStruktur: finalValidation.valid ? '✅ Valid' : '⚠️ ' + finalValidation.issues.join('; '),
       errors: errors.length > 0 ? errors : null,
       waktuProses: elapsed + ' detik',
     },
