@@ -236,19 +236,19 @@
         </div>
       </div>
     </div>
-  </main>
-// Cek login
-const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
-if (!userData || !userData.uid) {
-  window.location.href = '/login.html';
-}
-const UID = userData.uid;
-  
-  <script>
-    // ============================================================
-    // RHF ZERO — Frontend Chat
-    // ============================================================
+</main>
 
+<script>
+  // ============================================================
+  // RHF ZERO — Frontend Chat
+  // ============================================================
+
+  // Cek login — HARUS DI DALAM <script>
+  const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
+  if (!userData || !userData.uid) {
+    window.location.href = '/login.html';
+  }
+  const UID = userData ? userData.uid : 'anon_' + Date.now();
     const API_URL = '/api/chat';
     const MEMORY_URL = '/api/memory';
     const DOWNLOAD_URL = '/api/download';
