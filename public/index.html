@@ -243,29 +243,27 @@
   // RHF ZERO — Frontend Chat
   // ============================================================
 
-  // Cek login — HARUS DI DALAM <script>
+  // Cek login
   const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
   if (!userData || !userData.uid) {
     window.location.href = '/login.html';
   }
   const UID = userData ? userData.uid : 'anon_' + Date.now();
-    const API_URL = '/api/chat';
-    const MEMORY_URL = '/api/memory';
-    const DOWNLOAD_URL = '/api/download';
-    const VISION_URL = '/api/vision';
-    const READER_URL = '/api/reader';
-    const EXPORT_URL = '/api/export';
 
-    const UID = localStorage.getItem('rhf_uid') || 'anon_' + Date.now();
-    if (!localStorage.getItem('rhf_uid')) localStorage.setItem('rhf_uid', UID);
+  const API_URL = '/api/chat';
+  const MEMORY_URL = '/api/memory';
+  const DOWNLOAD_URL = '/api/download';
+  const VISION_URL = '/api/vision';
+  const READER_URL = '/api/reader';
+  const EXPORT_URL = '/api/export';
 
-    let isProcessing = false;
-    let lastRawCode = null;
-    let lastFilename = 'kode.txt';
-    let currentChatId = null;
-    let chatList = [];
+  let isProcessing = false;
+  let lastRawCode = null;
+  let lastFilename = 'kode.txt';
+  let currentChatId = null;
+  let chatList = [];
 
-    document.getElementById('sessionId').textContent = 'User: ' + UID.substring(0, 10) + '...';
+  document.getElementById('sessionId').textContent = 'User: ' + UID.substring(0, 10) + '...';
 
     // ============================================================
     // HISTORY & CHAT ROOMS
