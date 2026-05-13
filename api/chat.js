@@ -1,7 +1,6 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// 5 AI Mode — Groq | Gemini | DeepSeek | OpenRouter | Baseten
-// Fail-Safe: 1 mati → lanjut → tidak crash
+// 5 AI Test — Groq | Gemini | OpenRouter | Cerebras | HuggingFace
 // ============================================================
 
 export default async function handler(req, res) {
@@ -12,9 +11,6 @@ export default async function handler(req, res) {
 
   const results = [];
 
-  // ============================================================
-  // Helper: OpenAI client dengan explicit apiKey
-  // ============================================================
   async function getOpenAI(baseURL, apiKey) {
     const { default: OpenAI } = await import('openai');
     return new OpenAI({ baseURL, apiKey });
@@ -33,7 +29,7 @@ export default async function handler(req, res) {
     });
     results.push('✅ Groq');
   } catch (e) {
-    results.push('❌ Groq: ' + e.message.substring(0, 50));
+    results.push('❌ Groq: ' + e.message.substring(0, 40));
   }
 
   // ============================================================
@@ -46,26 +42,11 @@ export default async function handler(req, res) {
     await model.generateContent({ contents: [{ parts: [{ text: 'OK' }] }] });
     results.push('✅ Gemini');
   } catch (e) {
-    results.push('❌ Gemini: ' + e.message.substring(0, 50));
+    results.push('❌ Gemini: ' + e.message.substring(0, 40));
   }
 
   // ============================================================
-  // AI #3: DEEPSEEK (Direct)
-  // ============================================================
-  try {
-    const ds = await getOpenAI('https://api.deepseek.com/v1', process.env.DEEPSEEK_API_KEY);
-    await ds.chat.completions.create({
-      model: 'deepseek-chat',
-      messages: [{ role: 'user', content: 'OK' }],
-      max_tokens: 5
-    });
-    results.push('✅ DeepSeek');
-  } catch (e) {
-    results.push('❌ DeepSeek: ' + e.message.substring(0, 50));
-  }
-
-  // ============================================================
-  // AI #4: OPENROUTER (Mistral)
+  // AI #3: OPENROUTER (Mistral)
   // ============================================================
   try {
     const or = await getOpenAI('https://openrouter.ai/api/v1', process.env.OPENROUTER_API_KEY);
@@ -76,22 +57,37 @@ export default async function handler(req, res) {
     });
     results.push('✅ OpenRouter-Mistral');
   } catch (e) {
-    results.push('❌ OpenRouter-Mistral: ' + e.message.substring(0, 50));
+    results.push('❌ OpenRouter-Mistral: ' + e.message.substring(0, 40));
   }
 
   // ============================================================
-  // AI #5: BASETEN (Nemotron Super)
+  // AI #4: CEREBRAS
   // ============================================================
   try {
-    const bt = await getOpenAI('https://api.baseten.co/v1', process.env.BASETEN_API_KEY);
-    await bt.chat.completions.create({
-      model: 'nvidia/llama-3.3-nemotron-super-49b-v1',
+    const cb = await getOpenAI('https://api.cerebras.ai/v1', process.env.CEREBRAS_API_KEY);
+    await cb.chat.completions.create({
+      model: 'llama3.3-70b',
       messages: [{ role: 'user', content: 'OK' }],
       max_tokens: 5
     });
-    results.push('✅ Baseten-Nemotron');
+    results.push('✅ Cerebras');
   } catch (e) {
-    results.push('❌ Baseten-Nemotron: ' + e.message.substring(0, 50));
+    results.push('❌ Cerebras: ' + e.message.substring(0, 40));
+  }
+
+  // ============================================================
+  // AI #5: HUGGING FACE
+  // ============================================================
+  try {
+    const hf = await getOpenAI('https://api-inference.huggingface.co/v1', process.env.HF_API_KEY);
+    await hf.chat.completions.create({
+      model: 'mistralai/Mistral-7B-Instruct-v0.3',
+      messages: [{ role: 'user', content: 'OK' }],
+      max_tokens: 5
+    });
+    results.push('✅ HuggingFace');
+  } catch (e) {
+    results.push('❌ HuggingFace: ' + e.message.substring(0, 40));
   }
 
   // ============================================================
