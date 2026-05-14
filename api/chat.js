@@ -84,9 +84,36 @@ export default async function handler(req, res) {
     // SIMPAN KE INGATAN (FIFO: 300 max)
     // ============================================================
     if (uid) {
-      // Tambah pesan baru
-      history.push('👤: ' + message.substring(0, 200));
-      history.push('🤖: ' + response.substring(0, 200));
+// Tambah pesan baru
+history.push('👤: ' + message.substring(0, 200));
+history.push('🤖: ' + response.substring(0, 200));
+
+// Setiap 10 pesan, buat ringkasan
+if (history.length % 10 === 0) {
+  try {
+    const summaryRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'Buat ringkasan SINGKAT dari percakapan ini. Tangkap: topik utama, keputusan, fakta penting, dan preferensi user. Maks 3 kalimat.' },
+          { role: 'user', content: history.slice(-10).join('\n') }
+        ],
+        max_tokens: 200,
+        temperature: 0.3
+      })
+    });
+    const sData = await summaryRes.json();
+    const ringkasan = sData.choices?.[0]?.message?.content || '';
+    if (ringkasan) {
+      history.push('📝 Ringkasan: ' + ringkasan);
+    }
+  } catch(e) {}
+}
 
       // JAGA MAKS 300 — hapus yang paling depan kalau kelebihan
       if (history.length > MAX_HISTORY) {
