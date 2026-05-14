@@ -1,223 +1,159 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// FITUR INGATAN SUPER PANJANG + ANTI CRASH
+// INGATAN PENUH — Fakta + 350 Baris Chat Terakhir
 // ============================================================
 
-import { Groq } from 'groq-sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
-import { saveMessage } from './memory.js';
-
-// ============================================================
-// INISIALISASI CLIENT (Try-Catch biar aman)
-// ============================================================
-let groq = null;
-let geminiModel = null;
-let openrouter = null;
-
-try { groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); } catch(e) {}
-try {
-  const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  geminiModel = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-} catch(e) {}
-try {
-  openrouter = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY });
-} catch(e) {}
-
-// ============================================================
-// HELPER
-// ============================================================
-function extractCode(text) {
-  if (!text) return '';
-  const match = text.match(/```[\w]*\n([\s\S]*?)```/);
-  return match ? match[1].trim() : text.trim();
-}
-
-// ============================================================
-// MEMORY UTILS (Database Ingatan)
-// ============================================================
-async function getUserMemory(uid) {
-  if (!uid) return [];
-  try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const { getApps, initializeApp, cert } = await import('firebase-admin/app');
-    
-    if (getApps().length === 0) {
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-      });
-    }
-    
-    const db = getFirestore();
-    const snapshot = await db.collection('user_memory').doc(uid).collection('facts').get();
-    const facts = [];
-    snapshot.forEach(doc => facts.push(doc.data().fact));
-    return facts;
-  } catch(e) { return []; }
-}
-
-async function saveUserMemory(uid, fact) {
-  if (!uid || !fact) return;
-  try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const { getApps, initializeApp, cert } = await import('firebase-admin/app');
-    
-    if (getApps().length === 0) {
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-      });
-    }
-    
-    const db = getFirestore();
-    await db.collection('user_memory').doc(uid).collection('facts').add({ fact });
-  } catch(e) {}
-}
-
-// ============================================================
-// MAIN HANDLER
-// ============================================================
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message, mode, image, uid, chatId } = req.body;
-  if (!message && !image) return res.status(400).json({ error: 'Pesan kosong' });
+  const { message, mode, uid, chatId } = req.body;
+  if (!message) return res.status(400).json({ error: 'Pesan kosong' });
 
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  const FB_KEY = process.env.FIREBASE_API_KEY;
+  const FB_PROJECT = process.env.FIREBASE_PROJECT_ID;
   const currentChatId = chatId || 'chat_' + Date.now();
 
-  if (uid) saveMessage(uid, currentChatId, 'user', message || '[Gambar]', mode || 'santai').catch(() => {});
+  // ============================================================
+  // 1. RECALL: Fakta + 350 baris chat terakhir
+  // ============================================================
+  let memoryText = '';
 
+  if (uid) {
+    try {
+      // Ambil fakta
+      const memRes = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/user_memory/${uid}?key=${FB_KEY}`
+      );
+      const memData = await memRes.json();
+      if (memData.fields?.facts?.stringValue) {
+        const facts = JSON.parse(memData.fields.facts.stringValue);
+        if (facts.length > 0) {
+          memoryText += '\n[FAKTA TENTANG USER]\n' + facts.slice(-10).map(f => '- ' + f).join('\n') + '\n';
+        }
+      }
+
+      // Ambil 350 baris chat terakhir
+      const chatRes = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/chats/${uid}/messages?orderBy=timestamp&limit=50&key=${FB_KEY}`
+      );
+      const chatData = await chatRes.json();
+      if (chatData.documents) {
+        const recentChats = chatData.documents.slice(-25).map(doc => {
+          const fields = doc.fields || {};
+          const role = fields.role?.stringValue || '';
+          const content = (fields.content?.stringValue || '').substring(0, 150);
+          return role + ': ' + content;
+        });
+        if (recentChats.length > 0) {
+          memoryText += '\n[CHAT TERAKHIR]\n' + recentChats.join('\n') + '\n';
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ============================================================
+  // 2. IDENTITAS + SYSTEM PROMPT
+  // ============================================================
+  const identity = `Kamu RHF ZERO, dibuat oleh RHF. Kamu punya ingatan penuh tentang user.`;
+  let systemPrompt = identity + '\n\n' + memoryText;
+  
+  if (mode === 'serius') systemPrompt += '\nTulis kode LENGKAP.';
+  else if (mode === 'detektif') systemPrompt += '\nKamu detektif digital.';
+  else if (mode === 'scraper') systemPrompt += '\nBuat HTML LENGKAP.';
+  else systemPrompt += '\nJawab natural, personal, seperti teman lama. Gunakan ingatan di atas.';
+
+  // ============================================================
+  // 3. PANGGIL GROQ
+  // ============================================================
   try {
-    // ============================================================
-    // 1. RECALL INGATAN: Ambil semua fakta tentang user
-    // ============================================================
-    const userFacts = await getUserMemory(uid);
-    const memoryContext = userFacts.length > 0 
-      ? '\n\n[INGATAN TENTANG PENGGUNA]\n' + userFacts.map(f => `- ${f}`).join('\n') + '\n[/INGATAN]\n'
-      : '';
+    const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        max_tokens: mode === 'serius' || mode === 'scraper' ? 8192 : 2000,
+        temperature: 0.7
+      })
+    });
 
-    let result;
-    if (mode === 'serius') result = await handleSerius(message, image, memoryContext);
-    else if (mode === 'detektif') result = await handleDetektif(message, image, memoryContext);
-    else if (mode === 'scraper') result = await handleScraper(message, memoryContext);
-    else result = await handleSantai(message, memoryContext);
+    const aiData = await aiRes.json();
+    const response = aiData.choices?.[0]?.message?.content || 'Maaf, tidak ada respons.';
 
     // ============================================================
-    // 2. SIMPAN FAKTA OTOMATIS: AI cek apakah ada fakta baru
+    // 4. SIMPAN CHAT + FAKTA OTOMATIS
     // ============================================================
     if (uid) {
-      saveMessage(uid, currentChatId, 'ai', result.response, mode || 'santai').catch(() => {});
-      
-      // Cek fakta baru menggunakan Gemini
-      if (geminiModel) {
-        try {
-          const checkFact = await geminiModel.generateContent(
-            `Dari percakapan ini, apakah ada FAKTA PENTING tentang user yang perlu diingat? (misal: nama, hobi, pekerjaan, project). Jika tidak ada, jawab "TIDAK". Jika ada, tulis faktanya dengan format "FAKTA: [isi fakta]".\n\nUser: ${message}\nAI: ${result.response}`
-          );
-          const factText = checkFact.response.text();
-          if (factText.includes('FAKTA:')) {
-            const fact = factText.split('FAKTA:')[1].split('\n')[0].trim();
-            if (fact && fact.length > 3) {
-              await saveUserMemory(uid, fact);
-            }
+      // Simpan chat
+      try {
+        await fetch(
+          `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/chats/${uid}/messages?key=${FB_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fields: {
+                role: { stringValue: 'user' },
+                content: { stringValue: message },
+                timestamp: { timestampValue: new Date().toISOString() },
+                chatId: { stringValue: currentChatId }
+              }
+            })
           }
+        );
+        await fetch(
+          `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/chats/${uid}/messages?key=${FB_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fields: {
+                role: { stringValue: 'ai' },
+                content: { stringValue: response },
+                timestamp: { timestampValue: new Date().toISOString() },
+                chatId: { stringValue: currentChatId }
+              }
+            })
+          }
+        );
+      } catch(e) {}
+
+      // Simpan fakta (kalau ada)
+      const lowerMsg = message.toLowerCase();
+      if (lowerMsg.includes('aku ') || lowerMsg.includes('saya ') || lowerMsg.includes('namaku ')) {
+        try {
+          const existingFacts = memoryText.includes('[FAKTA') 
+            ? memoryText.split('[FAKTA')[1].split('[/FAKTA]')[0].split('\n').filter(f => f.startsWith('- ')).map(f => f.replace('- ', ''))
+            : [];
+          existingFacts.push(message);
+          const uniqueFacts = [...new Set(existingFacts)].slice(-20);
+          
+          await fetch(
+            `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/user_memory/${uid}?key=${FB_KEY}`,
+            {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fields: {
+                  facts: { stringValue: JSON.stringify(uniqueFacts) },
+                  updatedAt: { timestampValue: new Date().toISOString() }
+                }
+              })
+            }
+          );
         } catch(e) {}
       }
     }
 
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({ mode: 'error', response: 'Terjadi kesalahan internal.' });
+    return res.json({ mode: mode || 'santai', response, chatId: currentChatId });
+  } catch(e) {
+    return res.json({ mode: 'santai', response: 'Halo! Ada yang bisa RHF bantu?' });
   }
 }
-
-// ============================================================
-// MODE SANTAI (Dengan Ingatan Super Panjang)
-// ============================================================
-async function handleSantai(message, context) {
-  if (!groq) return { mode: 'santai', response: 'Sistem sedang sibuk.' };
-  try {
-    const sysPrompt = `Kamu RHF ZERO, asisten pribadi yang setia. ${context}\n\nGunakan ingatan ini untuk personalisasi jawaban. Jawab natural dan informatif.`;
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: sysPrompt },
-        { role: 'user', content: message }
-      ],
-      max_tokens: 2000, temperature: 0.7
-    });
-    return { mode: 'santai', response: completion.choices[0].message.content };
-  } catch (e) {
-    return { mode: 'santai', response: 'Halo! Maaf, aku agak lupa. Bisa diulang?' };
-  }
-}
-
-// ============================================================
-// MODE SERIUS
-// ============================================================
-async function handleSerius(message, image, context) {
-  let prompt = `${context}\n\nTulis kode LENGKAP untuk: "${message}". Output SEMUA, jangan dipotong.`;
-  
-  if (geminiModel) {
-    try {
-      const parts = [{ text: prompt }];
-      if (image) parts.push({ inlineData: { mimeType: 'image/png', data: image.replace(/^data:image\/\w+;base64,/, '') } });
-      const res = await geminiModel.generateContent({ contents: [{ parts }] });
-      return { mode: 'serius', response: res.response.text() };
-    } catch(e) {}
-  }
-  
-  if (groq) {
-    try {
-      const gen = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 8192, temperature: 0.3
-      });
-      return { mode: 'serius', response: gen.choices[0].message.content };
-    } catch(e) {}
-  }
-  
-  return { mode: 'serius', response: 'Gagal generate kode.' };
-}
-
-// ============================================================
-// MODE DETEKTIF
-// ============================================================
-async function handleDetektif(message, image, context) {
-  if (!geminiModel) return { mode: 'detektif', response: 'Mode detektif butuh Gemini.' };
-  try {
-    const parts = [{ text: `Kamu detektif digital. ${context}\n\n${message || 'Analisis gambar ini.'}` }];
-    if (image) parts.push({ inlineData: { mimeType: 'image/png', data: image.replace(/^data:image\/\w+;base64,/, '') } });
-    const res = await geminiModel.generateContent({ contents: [{ parts }] });
-    return { mode: 'detektif', response: res.response.text() };
-  } catch (e) {
-    return { mode: 'detektif', response: 'Gagal analisis.' };
-  }
-}
-
-// ============================================================
-// MODE SCRAPER
-// ============================================================
-async function handleScraper(message, context) {
-  if (!groq) return { mode: 'scraper', response: 'Mode scraper butuh Groq.' };
-  try {
-    const prompt = `${context}\n\nBuatkan HTML LENGKAP hasil pencarian untuk: "${message}". Desain modern, ada sumber & ringkasan. Kode HARUS LENGKAP.`;
-    const gen = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 8192, temperature: 0.3
-    });
-    const code = extractCode(gen.choices[0].message.content);
-    return { mode: 'scraper', response: code || gen.choices[0].message.content };
-  } catch (e) {
-    return { mode: 'scraper', response: 'Gagal scraping.' };
-  }
-            }
