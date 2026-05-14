@@ -14,6 +14,7 @@
       display: flex;
       flex-direction: column;
     }
+
     .header {
       background: #111118;
       border-bottom: 1px solid #1e1e2e;
@@ -51,6 +52,7 @@
       font-size: 14px; transition: all 0.2s;
     }
     .btn-history:hover { background: #24243a; border-color: #6c5ce7; }
+
     .main { display: flex; flex: 1; overflow: hidden; }
     .sidebar {
       width: 260px; background: #0e0e16;
@@ -75,104 +77,58 @@
       transition: all 0.15s;
     }
     .history-item:hover { background: #1a1a28; color: #ccc; }
-    .history-item.active {
-      background: #1a1a2e; color: #a29bfe; border: 1px solid #2a2a4a;
-    }
-    .history-name {
-      font-weight: 500; margin-bottom: 2px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .history-preview {
-      font-size: 10px; color: #555;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    .history-item.active { background: #1a1a2e; color: #a29bfe; border: 1px solid #2a2a4a; }
+    .history-name { font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-preview { font-size: 10px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     .chat-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .chat-messages {
-      flex: 1; overflow-y: auto; padding: 24px;
-      display: flex; flex-direction: column; gap: 16px;
-    }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
     .message { display: flex; gap: 12px; max-width: 85%; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
     .message.user { align-self: flex-end; flex-direction: row-reverse; }
     .message.ai { align-self: flex-start; }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
+    .avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
     .avatar.user { background: #1e1e2e; }
     .avatar.ai { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
-    .bubble {
-      padding: 12px 16px; border-radius: 12px; font-size: 14px;
-      line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word;
-      max-width: 100%; overflow-x: auto;
-    }
+    .bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto; }
     .bubble.user { background: #1a1a2e; color: #e0e0e0; border: 1px solid #2a2a4a; }
     .bubble.ai { background: #111118; color: #d0d0d0; border: 1px solid #1e1e2e; }
-    .bubble pre {
-      background: #0a0a14; padding: 16px; border-radius: 8px;
-      overflow-x: auto; margin: 8px 0; font-size: 12px;
-      border: 1px solid #1e1e2e; position: relative;
-    }
-    .bubble code {
-      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-      font-size: 12px; white-space: pre-wrap; word-break: break-word;
-    }
+    .bubble pre { background: #0a0a14; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 8px 0; font-size: 12px; border: 1px solid #1e1e2e; position: relative; }
+    .bubble code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
     .code-actions { display: flex; gap: 8px; margin-top: 8px; }
-    .btn-copy, .btn-download {
-      padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 6px;
-      cursor: pointer; font-size: 12px; font-weight: 500;
-      transition: all 0.2s; background: #1a1a28; color: #ccc;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
+    .btn-copy, .btn-download { padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; background: #1a1a28; color: #ccc; display: inline-flex; align-items: center; gap: 4px; }
     .btn-copy:hover, .btn-download:hover { background: #24243a; border-color: #6c5ce7; color: #fff; }
     .btn-copy.copied, .btn-download.downloaded { background: #1a3a1a; border-color: #00e676; color: #00e676; }
     .metadata-bar { font-size: 11px; color: #666; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
     .metadata-bar span { background: #0e0e16; padding: 4px 10px; border-radius: 4px; border: 1px solid #1a1a24; }
+
     .input-container { padding: 16px 24px; border-top: 1px solid #1e1e2e; background: #0a0a0f; flex-shrink: 0; }
+    .mode-selector { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .mode-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #2a2a3a; background: #111118; color: #888; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; }
+    .mode-btn:hover { background: #1a1a28; color: #ccc; }
+    .mode-btn.active { background: #1a1a2e; color: #a29bfe; border-color: #6c5ce7; }
     .input-wrapper { display: flex; gap: 10px; align-items: flex-end; }
-    .input-box {
-      flex: 1; background: #111118; border: 1px solid #1e1e2e;
-      border-radius: 12px; padding: 14px 18px; color: #e0e0e0;
-      font-size: 14px; font-family: inherit; resize: none;
-      min-height: 48px; max-height: 200px; outline: none;
-      transition: border-color 0.2s; line-height: 1.5;
-    }
+    .input-box { flex: 1; background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 14px 18px; color: #e0e0e0; font-size: 14px; font-family: inherit; resize: none; min-height: 48px; max-height: 200px; outline: none; transition: border-color 0.2s; line-height: 1.5; }
     .input-box:focus { border-color: #6c5ce7; }
     .input-box::placeholder { color: #444; }
-    .btn-send {
-      background: linear-gradient(135deg, #6c5ce7, #8b7cf0);
-      color: #fff; border: none; padding: 12px 24px;
-      border-radius: 12px; cursor: pointer; font-size: 14px;
-      font-weight: 600; transition: all 0.2s; flex-shrink: 0;
-    }
+    .btn-send { background: linear-gradient(135deg, #6c5ce7, #8b7cf0); color: #fff; border: none; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; flex-shrink: 0; }
     .btn-send:hover { background: linear-gradient(135deg, #7d6ff0, #9b8ff5); transform: translateY(-1px); }
     .btn-send:disabled { background: #1e1e2e; color: #555; cursor: not-allowed; transform: none; }
-    .btn-upload {
-      background: #111118; color: #888; border: 1px solid #1e1e2e;
-      padding: 12px 16px; border-radius: 12px; cursor: pointer;
-      font-size: 14px; transition: all 0.2s; flex-shrink: 0;
-    }
+    .btn-upload { background: #111118; color: #888; border: 1px solid #1e1e2e; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-size: 14px; transition: all 0.2s; flex-shrink: 0; }
     .btn-upload:hover { background: #1a1a28; color: #ccc; }
-    .mode-indicator {
-      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
-      color: #555; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
-    }
-    .mode-indicator .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .mode-indicator .dot.santai { background: #00e676; }
-    .mode-indicator .dot.serius { background: #ff9100; }
+    .mode-indicator { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 8px; display: none; }
+
     .loading-dots { display: flex; gap: 4px; padding: 8px 0; }
-    .loading-dots span {
-      width: 6px; height: 6px; border-radius: 50%; background: #555;
-      animation: bounce 1.4s infinite ease-in-out;
-    }
+    .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: #555; animation: bounce 1.4s infinite ease-in-out; }
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
     .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes bounce { 0%,80%,100%{transform:scale(0.6);} 40%{transform:scale(1);} }
+
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
+
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .message { max-width: 95%; }
@@ -184,225 +140,89 @@
 </head>
 <body>
 
-  <header class="header">
-    <div class="header-left">
-      <div class="logo">⚡</div>
-      <div>
-        <div class="title">RHF ZERO</div>
-        <div class="subtitle">Asisten Cerdas</div>
-      </div>
+<header class="header">
+  <div class="header-left">
+    <div class="logo">⚡</div>
+    <div>
+      <div class="title">RHF ZERO</div>
+      <div class="subtitle">Asisten Cerdas</div>
     </div>
-    <div class="header-right">
-      <div class="status-dot"></div>
-      <span class="status-text">Online</span>
-      <span class="session-id" id="sessionId">User: ...</span>
-      <button class="btn-history" onclick="toggleHistory()" title="Riwayat Chat">⚙️</button>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text">Online</span>
+    <span class="session-id" id="sessionId">User: ...</span>
+    <button class="btn-history" onclick="toggleHistory()" title="Riwayat">⚙️</button>
+  </div>
+</header>
+
+<main class="main">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Riwayat Chat</div>
+      <button class="btn-new-chat" onclick="chatBaru()">+ Chat Baru</button>
     </div>
-  </header>
+    <div class="history-list" id="historyList"></div>
+  </aside>
 
-  <main class="main">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-title">Riwayat Chat</div>
-        <button class="btn-new-chat" onclick="chatBaru()">+ Chat Baru</button>
-      </div>
-      <div class="history-list" id="historyList"></div>
-    </aside>
-
-    <div class="chat-container">
-      <div class="chat-messages" id="chatMessages">
-        <div class="message ai">
-          <div class="avatar ai">🧠</div>
-          <div>
-            <div class="bubble ai">
-              Halo! Aku RHF ZERO, asisten yang siap membantu.<br><br>
-              <b>Mode Santai:</b> Ngobrol biasa, jawab singkat.<br>
-              <b>Mode Serius:</b> Bantu coding & teknis.<br><br>
-              Silakan kirim pesan atau upload file. 🚀
-            </div>
+  <div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+      <div class="message ai">
+        <div class="avatar ai">🧠</div>
+        <div>
+          <div class="bubble ai">
+            Halo! Aku RHF ZERO, asisten serba bisa.<br><br>
+            <b>💬 Santai:</b> Ngobrol biasa<br>
+            <b>⚡ Serius:</b> Coding & teknis<br>
+            <b>🔍 Detektif:</b> Investigasi & analisis<br>
+            <b>🌐 Scraper:</b> Cari & gabung web<br><br>
+            Pilih mode di bawah ya 🚀
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="input-container">
-        <div class="mode-indicator" id="modeIndicator">
-          <span class="dot santai"></span> Mode: Santai
-        </div>
-        <div class="input-wrapper">
-          <button class="btn-upload" onclick="document.getElementById('fileInput').click()" title="Upload file atau gambar">📎</button>
-          <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)" accept="*/*">
-          <textarea class="input-box" id="userInput" placeholder="Ketik pesan atau minta kode..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
-          <button class="btn-send" id="btnSend" onclick="sendMessage()">Kirim</button>
-        </div>
+    <div class="input-container">
+      <div class="mode-selector">
+        <button class="mode-btn active" onclick="setMode('santai')" id="btnSantai">💬 Santai</button>
+        <button class="mode-btn" onclick="setMode('serius')" id="btnSerius">⚡ Serius</button>
+        <button class="mode-btn" onclick="setMode('detektif')" id="btnDetektif">🔍 Detektif</button>
+        <button class="mode-btn" onclick="setMode('scraper')" id="btnScraper">🌐 Scraper</button>
+      </div>
+      <div class="input-wrapper">
+        <button class="btn-upload" onclick="document.getElementById('fileInput').click()" title="Upload">📎</button>
+        <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)" accept="*/*">
+        <textarea class="input-box" id="userInput" placeholder="Ketik pesan..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+        <button class="btn-send" id="btnSend" onclick="sendMessage()">Kirim</button>
       </div>
     </div>
+  </div>
 </main>
 
 <script>
-  // ============================================================
-  // RHF ZERO — Frontend Chat
-  // ============================================================
+const API_URL = '/api/chat';
+const DOWNLOAD_URL = '/api/download';
 
-  // Cek login
-  const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
-  if (!userData || !userData.uid) {
-    window.location.href = '/login.html';
-  }
-  const UID = userData ? userData.uid : 'anon_' + Date.now();
+const userData = JSON.parse(localStorage.getItem('rhf_user') || 'null');
+if (!userData || !userData.uid) window.location.href = '/login.html';
+const UID = userData ? userData.uid : 'anon_' + Date.now();
 
-  const API_URL = '/api/chat';
-  const MEMORY_URL = '/api/memory';
-  const DOWNLOAD_URL = '/api/download';
-  const VISION_URL = '/api/vision';
-  const READER_URL = '/api/reader';
-  const EXPORT_URL = '/api/export';
+let isProcessing = false;
+let currentMode = 'santai';
+let lastRawCode = null;
+let lastFilename = 'kode.txt';
 
-  let isProcessing = false;
-  let lastRawCode = null;
-  let lastFilename = 'kode.txt';
-  let currentChatId = null;
-  let chatList = [];
+document.getElementById('sessionId').textContent = 'User: ' + UID.substring(0, 10) + '...';
 
-  document.getElementById('sessionId').textContent = 'User: ' + UID.substring(0, 10) + '...';
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (btn) btn.classList.add('active');
+}
 
-    // ============================================================
-    // HISTORY & CHAT ROOMS
-    // ============================================================
-
-    function toggleHistory() {
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar.style.display === 'none') {
-        sidebar.style.display = 'flex';
-        loadChatList();
-      } else {
-        sidebar.style.display = 'none';
-      }
-    }
-
-    async function initApp() {
-      await loadChatList();
-      if (chatList.length > 0) {
-        await bukaChat(chatList[0].chatId);
-      } else {
-        await chatBaru();
-      }
-    }
-
-    async function loadChatList() {
-      try {
-        const res = await fetch(MEMORY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getChats', uid: UID }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          chatList = data.rooms;
-          renderHistoryList();
-        }
-      } catch (e) { console.error('loadChatList:', e); }
-    }
-
-    function renderHistoryList() {
-      const list = document.getElementById('historyList');
-      list.innerHTML = chatList.map(c => `
-        <div class="history-item${c.chatId === currentChatId ? ' active' : ''}" onclick="bukaChat('${c.chatId}')">
-          <div class="history-name">${escapeHTML(c.nama || 'Chat Baru')}</div>
-          <div class="history-preview">${escapeHTML(c.pesanTerakhir || 'Kosong')}</div>
-        </div>`).join('');
-    }
-
-    async function chatBaru() {
-      try {
-        const res = await fetch(MEMORY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'createChat', uid: UID, data: { nama: 'Chat Baru' } }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          currentChatId = data.chatId;
-          await loadChatList();
-          bersihkanChat();
-        }
-      } catch (e) {
-        currentChatId = 'chat_local_' + Date.now();
-        bersihkanChat();
-      }
-    }
-
-    async function bukaChat(chatId) {
-      currentChatId = chatId;
-      bersihkanChat();
-      try {
-        const res = await fetch(MEMORY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getMessages', uid: UID, chatId, data: { limit: 100 } }),
-        });
-        const data = await res.json();
-        if (data.success && data.messages.length > 0) {
-          document.getElementById('chatMessages').innerHTML = '';
-          data.messages.forEach(msg => {
-            if (msg.role === 'user') {
-              addMessage('user', msg.content, null, false);
-            } else {
-              const rawCode = extractRawCode(msg.content);
-              const display = formatCodeInResponse(msg.content, rawCode);
-              addMessage('ai', display, rawCode, !!rawCode);
-            }
-          });
-        }
-        renderHistoryList();
-      } catch (e) { console.error('bukaChat:', e); }
-    }
-
-    function bersihkanChat() {
-      document.getElementById('chatMessages').innerHTML = `
-        <div class="message ai">
-          <div class="avatar ai">🧠</div>
-          <div>
-            <div class="bubble ai">
-              Halo! Aku RHF ZERO, asisten yang siap membantu.<br><br>
-              <b>Mode Santai:</b> Ngobrol biasa, jawab singkat.<br>
-              <b>Mode Serius:</b> Bantu coding & teknis.<br><br>
-              Silakan kirim pesan atau upload file. 🚀
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // ============================================================
-    // HELPERS
-    // ============================================================
-
-    function escapeHTML(str) {
-      if (!str) return '';
-      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function extractRawCode(text) {
-      if (!text) return null;
-      const match = text.match(/```[\w]*\n([\s\S]*?)```/);
-      if (match) return match[1].trim();
-      return null;
-    }
-
-    function formatCodeInResponse(fullResponse, rawCode) {
-      if (!rawCode) return fullResponse;
-      const escaped = rawCode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const codeBlock = `<pre><code>${escaped}</code></pre>`;
-      return fullResponse.replace(/```[\w]*\n[\s\S]*?```/, codeBlock);
-    }
-    // ============================================================
-// SEND MESSAGE
-// ============================================================
-
-function handleKeyDown(event) {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
-  }
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
 async function sendMessage() {
@@ -413,295 +233,102 @@ async function sendMessage() {
 
   isProcessing = true;
   document.getElementById('btnSend').disabled = true;
-
-  if (!currentChatId) await chatBaru();
-
   addMessage('user', message);
   input.value = '';
-  input.style.height = 'auto';
-
-  const fileMatch = message.match(/(?:file|buat|bikinin?|tulis(?:kan)?)\s+(?:html|css|js|py|ts|json|txt)\s*(?:file\s*)?(?:bernama\s+)?(\w+\.\w+)/i);
-  if (fileMatch) lastFilename = fileMatch[1];
-
   const loadingId = addLoading();
 
   try {
-    const response = await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: message, uid: UID, chatId: currentChatId }),
+      body: JSON.stringify({ message, mode: currentMode, uid: UID })
     });
-
-    const data = await response.json();
+    const data = await res.json();
     removeLoading(loadingId);
 
-    if (data.mode === 'santai') {
-      addMessage('ai', data.response, null, false);
-      updateModeIndicator('santai');
-    } else if (data.mode === 'serius') {
-      const rawCode = extractRawCode(data.response) || data.response;
+    const rawCode = extractCode(data.response) || data.response;
+    if (data.mode === 'serius' || data.mode === 'scraper') {
       lastRawCode = rawCode;
-      const displayContent = formatCodeInResponse(data.response, rawCode);
-
-      let metadataHtml = '';
-      if (data.metadata) {
-        metadataHtml += '<div class="metadata-bar">';
-        if (data.metadata.panjangCode) metadataHtml += '<span>📏 ' + data.metadata.panjangCode + ' karakter</span>';
-        if (data.metadata.providersDigunakan) metadataHtml += '<span>🤖 ' + data.metadata.providersDigunakan + '</span>';
-        if (data.metadata.direviewOleh) metadataHtml += '<span>✅ Review: ' + data.metadata.direviewOleh + '</span>';
-        if (data.metadata.validasiStruktur) metadataHtml += '<span>🔍 ' + data.metadata.validasiStruktur + '</span>';
-        if (data.metadata.waktuProses) metadataHtml += '<span>⏱️ ' + data.metadata.waktuProses + '</span>';
-        if (data.metadata.errors) {
-          data.metadata.errors.forEach(function(e) {
-            metadataHtml += '<span style="color:#ff6b6b">⚠️ ' + e + '</span>';
-          });
-        }
-        metadataHtml += '</div>';
-      }
-
-      addMessage('ai', displayContent + metadataHtml, rawCode, true);
-      updateModeIndicator('serius');
+      addMessage('ai', formatCode(data.response, rawCode), rawCode, true);
     } else {
-      addMessage('ai', data.response || 'Tidak ada respons.', null, false);
+      addMessage('ai', data.response, null, false);
     }
-
-    await loadChatList();
-  } catch (error) {
+  } catch (e) {
     removeLoading(loadingId);
-    addMessage('ai', '❌ Error: ' + error.message, null, false);
+    addMessage('ai', '❌ ' + e.message, null, false);
   }
-
   isProcessing = false;
   document.getElementById('btnSend').disabled = false;
   document.getElementById('userInput').focus();
 }
 
-// ============================================================
-// ADD MESSAGE TO CHAT
-// ============================================================
-
 function addMessage(role, content, rawCode, showActions) {
-  var messages = document.getElementById('chatMessages');
-  var div = document.createElement('div');
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
   div.className = 'message ' + role;
-  var avatarEmoji = role === 'user' ? '👤' : '🧠';
-  var bubbleClass = 'bubble ' + role;
-
-  var actionsHtml = '';
+  const av = role === 'user' ? '👤' : '🧠';
+  let actions = '';
   if (showActions && rawCode) {
-    actionsHtml = '<div class="code-actions">' +
-      '<button class="btn-copy" onclick="copyCode(this)" data-code="' + encodeURIComponent(rawCode) + '">📋 Salin</button>' +
-      '<button class="btn-download" onclick="downloadCode(this)" data-code="' + encodeURIComponent(rawCode) + '">📥 Download</button>' +
-      '</div>';
+    actions = `<div class="code-actions">
+      <button class="btn-copy" onclick="copyCode(this)" data-code="${encodeURIComponent(rawCode)}">📋 Salin</button>
+      <button class="btn-download" onclick="downloadCode(this)" data-code="${encodeURIComponent(rawCode)}">📥 Download</button>
+    </div>`;
   }
-
-  div.innerHTML = '<div class="avatar ' + role + '">' + avatarEmoji + '</div>' +
-    '<div>' +
-    '<div class="' + bubbleClass + '">' + content + '</div>' +
-    actionsHtml +
-    '</div>';
-
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+  div.innerHTML = `<div class="avatar ${role}">${av}</div><div><div class="bubble ${role}">${content}</div>${actions}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 function addLoading() {
-  var messages = document.getElementById('chatMessages');
-  var div = document.createElement('div');
-  var id = 'loading_' + Date.now();
+  const msgs = document.getElementById('chatMessages');
+  const id = 'load_' + Date.now();
+  const div = document.createElement('div');
   div.id = id;
   div.className = 'message ai';
-  div.innerHTML = '<div class="avatar ai">🧠</div>' +
-    '<div><div class="bubble ai"><div class="loading-dots"><span></span><span></span><span></span></div></div></div>';
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+  div.innerHTML = '<div class="avatar ai">🧠</div><div><div class="bubble ai"><div class="loading-dots"><span></span><span></span><span></span></div></div></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
   return id;
 }
 
-function removeLoading(id) {
-  var el = document.getElementById(id);
-  if (el) el.remove();
+function removeLoading(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+function extractCode(text) {
+  if (!text) return null;
+  const m = text.match(/```[\w]*\n([\s\S]*?)```/);
+  return m ? m[1].trim() : null;
 }
 
-function updateModeIndicator(mode) {
-  var indicator = document.getElementById('modeIndicator');
-  if (mode === 'santai') {
-    indicator.innerHTML = '<span class="dot santai"></span> Mode: Santai';
-  } else {
-    indicator.innerHTML = '<span class="dot serius"></span> Mode: Serius';
-  }
+function formatCode(text, code) {
+  if (!code) return text;
+  const esc = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return text.replace(/```[\w]*\n[\s\S]*?```/, `<pre><code>${esc}</code></pre>`);
 }
-
-// ============================================================
-// COPY & DOWNLOAD
-// ============================================================
 
 async function copyCode(btn) {
-  var code = decodeURIComponent(btn.getAttribute('data-code'));
-  try {
-    await navigator.clipboard.writeText(code);
-  } catch (e) {
-    var textarea = document.createElement('textarea');
-    textarea.value = code;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
+  const code = decodeURIComponent(btn.getAttribute('data-code'));
+  try { await navigator.clipboard.writeText(code); } catch(e) {
+    const ta = document.createElement('textarea'); ta.value = code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
   }
-  btn.textContent = '✅ Tersalin!';
-  btn.classList.add('copied');
-  setTimeout(function() { btn.textContent = '📋 Salin'; btn.classList.remove('copied'); }, 2000);
+  btn.textContent = '✅'; setTimeout(() => btn.textContent = '📋 Salin', 1500);
 }
 
 async function downloadCode(btn) {
-  var code = decodeURIComponent(btn.getAttribute('data-code'));
-  try {
-    var response = await fetch(DOWNLOAD_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, filename: lastFilename }),
-    });
-    if (response.ok) {
-      var blob = await response.blob();
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = lastFilename; a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      throw new Error('Download API failed');
-    }
-  } catch (e) {
-    var blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = lastFilename; a.click();
-    URL.revokeObjectURL(url);
-  }
-  btn.textContent = '✅ Terunduh!';
-  btn.classList.add('downloaded');
-  setTimeout(function() { btn.textContent = '📥 Download'; btn.classList.remove('downloaded'); }, 2000);
+  const code = decodeURIComponent(btn.getAttribute('data-code'));
+  const blob = new Blob([code], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = lastFilename; a.click();
+  btn.textContent = '✅'; setTimeout(() => btn.textContent = '📥 Download', 1500);
 }
-        // ============================================================
-    // FILE UPLOAD — Gambar & Semua File
-    // ============================================================
 
-    async function handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      if (file.size > 20 * 1024 * 1024) {
-        addMessage('ai', '⚠️ File besar (' + (file.size / 1024 / 1024).toFixed(1) + 'MB), mungkin butuh waktu...', null, false);
-      }
-
-      const reader = new FileReader();
-
-      // Gambar → Vision
-      if (file.type.startsWith('image/')) {
-        reader.onload = async function(e) {
-          const base64 = e.target.result;
-          addMessage('user', '<img src="' + base64 + '" style="max-width:200px;border-radius:8px;" alt="Uploaded"><br><em>Menganalisis gambar...</em>');
-
-          const loadingId = addLoading();
-          try {
-            const response = await fetch(VISION_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                image: base64,
-                prompt: 'Jelaskan gambar ini secara detail. Sebutkan semua objek, warna, bentuk, posisi, suasana, dan detail penting. Jika tidak ada teks, tetap deskripsikan.',
-              }),
-            });
-            const data = await response.json();
-            removeLoading(loadingId);
-            if (data.success) {
-              addMessage('ai', '🖼️ ' + data.response, null, false);
-            } else {
-              addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
-            }
-          } catch (error) {
-            removeLoading(loadingId);
-            addMessage('ai', '❌ Error: ' + error.message, null, false);
-          }
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
-      // File non-gambar → Reader
-      reader.onload = async function(e) {
-        const content = e.target.result;
-        const displayContent = content.length > 500
-          ? content.substring(0, 500) + '\n... (' + (file.size / 1024).toFixed(1) + ' KB)'
-          : content;
-
-        addMessage('user', '📄 <b>' + file.name + '</b> (' + (file.size / 1024).toFixed(1) + ' KB)<br><em>Menganalisis...</em>');
-
-        const loadingId = addLoading();
-        try {
-          const response = await fetch(READER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: content,
-              fileName: file.name,
-              fileType: file.type,
-              isBase64: false,
-            }),
-          });
-          const data = await response.json();
-          removeLoading(loadingId);
-          if (data.success) {
-            addMessage('ai', '📊 <b>Analisis ' + file.name + ':</b><br><br>' + data.analysis, null, false);
-          } else {
-            addMessage('ai', '❌ Gagal: ' + (data.error || 'Unknown'), null, false);
-          }
-        } catch (error) {
-          removeLoading(loadingId);
-          addMessage('ai', '❌ Error: ' + error.message, null, false);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // ============================================================
-    // EXPORT CHAT
-    // ============================================================
-
-    async function exportChat(format) {
-      if (!currentChatId) {
-        alert('Tidak ada chat aktif');
-        return;
-      }
-
-      try {
-        const response = await fetch(EXPORT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: UID, chatId: currentChatId, format: format }),
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'chat.' + (format === 'pdf' || format === 'html' ? 'html' : format);
-          a.click();
-          URL.revokeObjectURL(url);
-        } else {
-          const data = await response.json();
-          alert('Gagal export: ' + (data.error || 'Unknown'));
-        }
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
-    }
-
-    // ============================================================
-    // INIT
-    // ============================================================
-
-    initApp();
-  </script>
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('userInput').value = `[File: ${file.name}]\n${reader.result.substring(0,500)}`;
+  };
+  reader.readAsText(file);
+}
+</script>
 </body>
-</html>
+  </html>
