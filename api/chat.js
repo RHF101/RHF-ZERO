@@ -1,6 +1,6 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// INGATAN SIMPLE — Fakta + Chat History dalam 1 dokumen
+// MODE SERIUS 3 AI + MEMORI TIAP AKUN GOOGLE
 // ============================================================
 
 export default async function handler(req, res) {
@@ -10,13 +10,17 @@ export default async function handler(req, res) {
   if (!message) return res.status(400).json({ error: 'Pesan kosong' });
 
   const GROQ_KEY = process.env.GROQ_API_KEY;
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  const OR_KEY = process.env.OPENROUTER_API_KEY;
   const FB_KEY = process.env.FIREBASE_API_KEY;
   const FB_PROJECT = process.env.FIREBASE_PROJECT_ID;
 
   // ============================================================
-  // 1. RECALL INGATAN
+  // RECALL INGATAN (dari akun Google/uid)
   // ============================================================
   let memoryText = '';
+  let facts = [];
+  let history = [];
 
   if (uid) {
     try {
@@ -25,90 +29,125 @@ export default async function handler(req, res) {
       );
       const data = await res.json();
       if (data.fields) {
-        const facts = data.fields.facts?.stringValue 
-          ? JSON.parse(data.fields.facts.stringValue) 
-          : [];
-        const history = data.fields.history?.stringValue 
-          ? JSON.parse(data.fields.history.stringValue) 
-          : [];
-
-        if (facts.length > 0) {
-          memoryText += '\n[FAKTA]\n' + facts.slice(-10).map(f => '- ' + f).join('\n') + '\n';
-        }
-        if (history.length > 0) {
-          memoryText += '\n[CHAT TERAKHIR]\n' + history.slice(-15).join('\n') + '\n';
-        }
+        facts = data.fields.facts?.stringValue ? JSON.parse(data.fields.facts.stringValue) : [];
+        history = data.fields.history?.stringValue ? JSON.parse(data.fields.history.stringValue) : [];
+        if (facts.length > 0) memoryText += '\n[FAKTA USER]\n' + facts.slice(-10).map(f => '- ' + f).join('\n');
+        if (history.length > 0) memoryText += '\n[CHAT TERAKHIR]\n' + history.slice(-15).join('\n');
       }
     } catch(e) {}
   }
 
   // ============================================================
-  // 2. SYSTEM PROMPT
+  // SYSTEM PROMPT
   // ============================================================
-  const identity = `Kamu RHF ZERO, dibuat oleh RHF. Kamu punya ingatan. Gunakan ingatan di bawah untuk jawab. Kalau tidak ada, ngobrol biasa.`;
+  const identity = 'Kamu RHF ZERO, dibuat oleh RHF. Kamu punya ingatan. Gunakan fakta & chat history user untuk jawab personal.';
   let systemPrompt = identity + '\n' + memoryText;
-  
-  if (mode === 'serius') systemPrompt += '\nMode: Coding. Tulis kode LENGKAP.';
-  else if (mode === 'detektif') systemPrompt += '\nMode: Detektif. Analisis mendalam.';
-  else if (mode === 'scraper') systemPrompt += '\nMode: Scraper. Buat HTML LENGKAP.';
-  else systemPrompt += '\nMode: Santai. Jawab natural, personal.';
 
-  // ============================================================
-  // 3. PANGGIL GROQ
-  // ============================================================
+  if (mode === 'serius') {
+    systemPrompt += '\nMode: SERIUS. Tulis kode LENGKAP, RAPI, jangan potong.';
+  } else if (mode === 'detektif') {
+    systemPrompt += '\nMode: DETEKTIF. Analisis mendalam.';
+  } else if (mode === 'scraper') {
+    systemPrompt += '\nMode: SCRAPER. Buat HTML LENGKAP.';
+  } else {
+    systemPrompt += '\nMode: SANTAI. Jawab natural, personal.';
+  }
+
   try {
-    const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: mode === 'serius' || mode === 'scraper' ? 8192 : 2000,
-        temperature: 0.7
-      })
-    });
-
-    const aiData = await aiRes.json();
-    const response = aiData.choices?.[0]?.message?.content || 'Maaf, tidak ada respons.';
+    let response = '';
 
     // ============================================================
-    // 4. SIMPAN CHAT + FAKTA
+    // MODE SERIUS: 3 AI (Groq → Gemini → DeepSeek)
+    // ============================================================
+    if (mode === 'serius') {
+      let code = '';
+
+      // --- 1. GROQ GENERATE ---
+      try {
+        const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: message }],
+            max_tokens: 8192, temperature: 0.3
+          })
+        });
+        const gData = await gRes.json();
+        code = gData.choices?.[0]?.message?.content || '';
+      } catch(e) {}
+
+      // --- 2. GEMINI REVIEW ---
+      if (code && GEMINI_KEY) {
+        try {
+          const gemRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `REVIEW kode ini. Cari typo, bug, format error. PERBAIKI & output KODE FINAL.\n\n${code}` }] }]
+              })
+            }
+          );
+          const gemData = await gemRes.json();
+          const reviewed = gemData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (reviewed && reviewed.length > 20) code = reviewed;
+        } catch(e) {}
+      }
+
+      // --- 3. DEEPSEEK VERIFIKASI ---
+      if (code && OR_KEY) {
+        try {
+          const dsRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'deepseek/deepseek-chat',
+              messages: [{ role: 'user', content: `Verifikasi kode ini. Cek logic & kelengkapan. Output KODE FINAL.\n\n${code}` }],
+              max_tokens: 8192, temperature: 0.1
+            })
+          });
+          const dsData = await dsRes.json();
+          const verified = dsData.choices?.[0]?.message?.content || '';
+          if (verified && verified.length > 20) code = verified;
+        } catch(e) {}
+      }
+
+      response = code || 'Gagal generate kode.';
+    } else {
+      // ============================================================
+      // MODE LAIN: Groq langsung
+      // ============================================================
+      const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: message }],
+          max_tokens: mode === 'scraper' ? 8192 : 2000,
+          temperature: 0.7
+        })
+      });
+      const aiData = await aiRes.json();
+      response = aiData.choices?.[0]?.message?.content || 'Maaf, tidak ada respons.';
+    }
+
+    // ============================================================
+    // SIMPAN KE MEMORI (per akun Google)
     // ============================================================
     if (uid) {
       try {
-        // Ambil data lama
-        const oldRes = await fetch(
-          `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/users/${uid}?key=${FB_KEY}`
-        );
-        const oldData = await oldRes.json();
-        
-        let facts = [];
-        let history = [];
-        
-        if (oldData.fields) {
-          facts = oldData.fields.facts?.stringValue ? JSON.parse(oldData.fields.facts.stringValue) : [];
-          history = oldData.fields.history?.stringValue ? JSON.parse(oldData.fields.history.stringValue) : [];
-        }
-
-        // Tambah ke history
-        history.push('User: ' + message);
+        history.push('User: ' + message.substring(0, 150));
         history.push('AI: ' + response.substring(0, 200));
-        if (history.length > 30) history = history.slice(-30); // Maks 30 baris
+        if (history.length > 30) history = history.slice(-30);
 
-        // Tambah fakta kalau relevan
         const lowerMsg = message.toLowerCase();
         if (lowerMsg.includes('aku ') || lowerMsg.includes('saya ') || lowerMsg.includes('namaku ') || lowerMsg.includes('hobiku ')) {
           facts.push(message);
           if (facts.length > 20) facts = facts.slice(-20);
         }
 
-        // Simpan ke Firebase
         await fetch(
           `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/users/${uid}?key=${FB_KEY}`,
           {
@@ -118,6 +157,7 @@ export default async function handler(req, res) {
               fields: {
                 facts: { stringValue: JSON.stringify(facts) },
                 history: { stringValue: JSON.stringify(history) },
+                email: { stringValue: uid + '@gmail.com' },
                 updatedAt: { timestampValue: new Date().toISOString() }
               }
             })
