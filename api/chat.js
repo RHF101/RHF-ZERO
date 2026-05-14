@@ -1,12 +1,13 @@
 // ============================================================
 // RHF ZERO — api/chat.js
-// Mode Produksi - 3 AI Fail-Safe (Groq, Gemini, OpenRouter)
+// Mode Manual + Detektif + Vision + Scraper + AI Mandor
 // ============================================================
 
 import { Groq } from 'groq-sdk';
+import { saveMessage } from './memory.js';
 
 // ============================================================
-// HELPER: Ekstrak kode dari Markdown
+// HELPER
 // ============================================================
 function extractCode(text) {
   if (!text) return '';
@@ -15,14 +16,9 @@ function extractCode(text) {
   return text.trim();
 }
 
-// ============================================================
-// DETEKTOR MODE
-// ============================================================
-function detectIntent(message) {
-  const keywords = ['buat', 'buatkan', 'tulis', 'kode', 'code', 'coding', 'fungsi', 'function', 'class', 'script', 'debug', 'fix', 'perbaiki', '.js', '.py', '.html', '.css', 'server', 'api', 'database'];
-  const m = message.toLowerCase();
-  if (m.includes('mode serius') || m.includes('```')) return 'serius';
-  return keywords.filter(k => m.includes(k)).length >= 2 ? 'serius' : 'santai';
+async function getOpenAI(baseURL, apiKey) {
+  const { default: OpenAI } = await import('openai');
+  return new OpenAI({ baseURL, apiKey });
 }
 
 // ============================================================
@@ -31,24 +27,27 @@ function detectIntent(message) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Pesan kosong' });
+  const { message, mode, image, uid, chatId } = req.body;
+  if (!message && !image) return res.status(400).json({ error: 'Pesan atau gambar kosong' });
 
-  const intent = detectIntent(message);
+  const currentChatId = chatId || 'chat_' + Date.now();
+  if (uid) saveMessage(uid, currentChatId, 'user', message || '[Gambar]', mode || 'santai').catch(() => {});
 
   try {
-    if (intent === 'santai') {
-      return await handleSantai(message, res);
-    } else {
-      return await handleSerius(message, res);
-    }
+    // Mode Manual: user pilih
+    if (mode === 'serius') return await handleSerius(message, image, res);
+    if (mode === 'detektif') return await handleDetektif(message, image, res);
+    if (mode === 'scraper') return await handleScraper(message, res);
+    
+    // Default: Santai
+    return await handleSantai(message, res);
   } catch (error) {
-    return res.json({ mode: 'error', response: 'Terjadi kesalahan sistem.' });
+    return res.status(500).json({ mode: 'error', response: 'Terjadi kesalahan.' });
   }
 }
 
 // ============================================================
-// MODE SANTAI (Groq)
+// MODE SANTAI
 // ============================================================
 async function handleSantai(message, res) {
   try {
@@ -56,10 +55,10 @@ async function handleSantai(message, res) {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: 'Kamu RHF ZERO. Jawab singkat, natural, 1-3 kalimat max.' },
+        { role: 'system', content: 'Kamu RHF ZERO, asisten serba bisa. Jawab natural, informatif, tidak perlu singkat kalau memang perlu detail.' },
         { role: 'user', content: message }
       ],
-      max_tokens: 200, temperature: 0.8
+      max_tokens: 2000, temperature: 0.7
     });
     return res.json({ mode: 'santai', response: completion.choices[0].message.content });
   } catch (e) {
@@ -68,92 +67,118 @@ async function handleSantai(message, res) {
 }
 
 // ============================================================
-// MODE SERIUS — 3 AI FAIL-SAFE
+// MODE SERIUS — Kode Panjang
 // ============================================================
-async function handleSerius(message, res) {
-  const errors = [];
-  let bestCode = '';
+async function handleSerius(message, image, res) {
+  let prompt = message;
 
-  const prompt = `Kamu coding expert. Tulis kode untuk: "${message}". Output KODE SAJA dalam markdown code block. Format RAPI.`;
+  // Kalau ada gambar
+  if (image) {
+    prompt = `[GAMBAR TERLAMPIR] Analisis gambar ini dan buat kode berdasarkan gambar tersebut.\nDeskripsi user: ${message || 'Tidak ada'}`;
+  }
 
-  // --- 1. GENERATE: Coba Groq dulu, kalau mati coba OpenRouter ---
-  console.log('[Serius] Fase Generate...');
+  try {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const parts = [{ text: `Kamu coding expert. Tulis kode LENGKAP untuk: "${prompt}". Output SEMUA kode. Jangan dipotong. Format RAPI.` }];
+    
+    if (image) {
+      parts.push({
+        inlineData: {
+          mimeType: 'image/png',
+          data: image.replace(/^data:image\/\w+;base64,/, '')
+        }
+      });
+    }
+
+    const result = await model.generateContent({ contents: [{ parts }] });
+    const response = result.response.text();
+
+    return res.json({
+      mode: 'serius',
+      response: response,
+      metadata: { panjangCode: response.length }
+    });
+  } catch (e) {
+    // Fallback ke Groq
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const gen = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 8192, temperature: 0.3
+      });
+      return res.json({ mode: 'serius', response: gen.choices[0].message.content });
+    } catch (e2) {
+      return res.json({ mode: 'serius', response: 'Gagal generate kode.' });
+    }
+  }
+}
+
+// ============================================================
+// MODE DETEKTIF — Vision + Investigasi
+// ============================================================
+async function handleDetektif(message, image, res) {
+  try {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const parts = [{
+      text: `Kamu detektif digital. ${message ? 'Pertanyaan: ' + message : ''} 
+      
+Tugasmu:
+1. Analisis gambar (jika ada) — deteksi objek, lokasi, metadata visual, kemungkinan tempat/kejadian
+2. Cari informasi terkait dari pengetahuanmu
+3. Berikan kesimpulan investigasi
+4. Jika diminta cari orang/jejak digital, berikan langkah-langkah pelacakan
+5. Format laporan yang rapi`
+    }];
+
+    if (image) {
+      parts.push({
+        inlineData: {
+          mimeType: 'image/png',
+          data: image.replace(/^data:image\/\w+;base64,/, '')
+        }
+      });
+    }
+
+    const result = await model.generateContent({ contents: [{ parts }] });
+    return res.json({ mode: 'detektif', response: result.response.text() });
+  } catch (e) {
+    return res.json({ mode: 'detektif', response: 'Investigasi gagal: ' + e.message });
+  }
+}
+
+// ============================================================
+// MODE SCRAPER — Cari web + gabung HTML
+// ============================================================
+async function handleScraper(message, res) {
   try {
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    
+    // Minta Groq buat HTML yang berisi hasil pencarian
+    const prompt = `Buatkan 1 file HTML LENGKAP yang berisi:
+1. Hasil pencarian untuk: "${message}"
+2. Format seperti halaman hasil pencarian
+3. Cantumkan sumber, link, dan ringkasan
+4. Desain RAPI dan modern dengan CSS inline
+5. SEMUA KODE HARUS LENGKAP, jangan dipotong
+
+OUTPUT KODE HTML SAJA.`;
+
     const gen = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 8192, temperature: 0.3
     });
-    bestCode = extractCode(gen.choices[0]?.message?.content);
-    console.log('[Serius] Groq Generate OK');
+
+    const code = extractCode(gen.choices[0].message.content);
+    return res.json({ mode: 'scraper', response: code || gen.choices[0].message.content });
   } catch (e) {
-    console.error('[Serius] Groq Gagal:', e.message);
-    errors.push('Generate: Groq mati, coba OpenRouter...');
-    
-    try {
-      const { default: OpenAI } = await import('openai');
-      const or = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY });
-      const gen = await or.chat.completions.create({
-        model: 'mistralai/mistral-large',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 8192, temperature: 0.3
-      });
-      bestCode = extractCode(gen.choices[0]?.message?.content);
-      console.log('[Serius] OpenRouter Generate OK (Fallback)');
-    } catch (e2) {
-      console.error('[Serius] OpenRouter Juga Gagal:', e2.message);
-      errors.push('Generate: Semua AI mati.');
-      return res.json({ mode: 'serius', response: 'Maaf, semua AI generator sedang sibuk. Coba lagi nanti.' });
-    }
+    return res.json({ mode: 'scraper', response: 'Gagal scraping.' });
   }
-
-  if (!bestCode || bestCode.length < 10) {
-    return res.json({ mode: 'serius', response: 'Kode gagal dibuat. Coba lagi.' });
-  }
-
-  // --- 2. REVIEW: Coba Gemini, kalau mati loncat ---
-  console.log('[Serius] Fase Review...');
-  let reviewedCode = bestCode;
-  try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const rev = await model.generateContent(`REVIEW kode ini. Cari typo, bug, format error. PERBAIKI & OUTPUT KODE FINAL.\n\n${bestCode}`);
-    const fixed = extractCode(rev.response.text());
-    if (fixed && fixed.length > 10) {
-      reviewedCode = fixed;
-      console.log('[Serius] Gemini Review OK');
-    }
-  } catch (e) {
-    console.error('[Serius] Gemini Review Gagal:', e.message);
-    errors.push('Review: Gemini mati, kode tetap diproses.');
-  }
-
-  // --- 3. VERIFIKASI: Coba OpenRouter (DeepSeek), kalau mati loncat ---
-  console.log('[Serius] Fase Verifikasi...');
-  let finalCode = reviewedCode;
-  try {
-    const { default: OpenAI } = await import('openai');
-    const or = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY });
-    const ver = await or.chat.completions.create({
-      model: 'deepseek/deepseek-chat',
-      messages: [{ role: 'user', content: `Verifikasi kode ini. Cek logika & kelengkapan. Output KODE FINAL.\n\n${reviewedCode}` }],
-      max_tokens: 8192, temperature: 0.1
-    });
-    const fixed = extractCode(ver.choices[0]?.message?.content);
-    if (fixed && fixed.length > 10) {
-      finalCode = fixed;
-      console.log('[Serius] DeepSeek Verifikasi OK');
-    }
-  } catch (e) {
-    console.error('[Serius] DeepSeek Verifikasi Gagal:', e.message);
-    errors.push('Verifikasi: DeepSeek mati, kode tetap aman.');
-  }
-
-  return res.json({
-    mode: 'serius',
-    response: finalCode,
-    metadata: { errors: errors.length > 0 ? errors : null }
-  });
-        }
+}
