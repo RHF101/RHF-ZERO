@@ -427,7 +427,22 @@ async function sendMessage() {
     } else {
       addMessage('ai', data.response, null, false);
     }
-    if (currentChatId) loadUserHistory();
+
+    // Update history list tanpa refresh chat
+    if (currentChatId) {
+      try {
+        const hRes = await fetch(MEMORY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getChats', uid: UID })
+        });
+        const hData = await hRes.json();
+        if (hData.success) {
+          chatList = hData.rooms;
+          renderHistoryList();
+        }
+      } catch(e) {}
+    }
   } catch (e) {
     removeLoading(loadingId);
     addMessage('ai', '❌ ' + e.message, null, false);
