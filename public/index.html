@@ -231,14 +231,34 @@ const auth = firebase.auth();
 // ============================================================
 // CEK LOGIN
 // ============================================================
-let UID = null;
+let UID = localStorage.getItem('rhf_uid') || null;
 
+// Ambil UID dari localStorage dulu (instant)
+const savedUser = localStorage.getItem('rhf_user');
+if (savedUser) {
+  try {
+    const userData = JSON.parse(savedUser);
+    if (userData.uid) {
+      UID = userData.uid;
+      document.getElementById('sessionId').textContent = userData.name || userData.email || 'User';
+    }
+  } catch(e) {}
+}
+
+// Firebase Auth (background check)
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     UID = user.uid;
+    localStorage.setItem('rhf_uid', user.uid);
+    localStorage.setItem('rhf_user', JSON.stringify({
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photo: user.photoURL
+    }));
     document.getElementById('sessionId').textContent = user.displayName || user.email || 'User';
     loadUserHistory();
-  } else {
+  } else if (!UID) {
     window.location.href = '/login.html';
   }
 });
@@ -246,13 +266,11 @@ auth.onAuthStateChanged(async (user) => {
 function logout() {
   auth.signOut().then(() => {
     localStorage.removeItem('rhf_user');
+    localStorage.removeItem('rhf_uid');
     window.location.href = '/login.html';
   });
 }
-
-// ============================================================
-// CHAT VARIABLES
-// ============================================================
+  
 const API_URL = '/api/chat';
 const MEMORY_URL = '/api/memory';
 const DOWNLOAD_URL = '/api/download';
