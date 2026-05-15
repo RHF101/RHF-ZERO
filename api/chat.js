@@ -146,7 +146,10 @@ if (history.length % 10 === 0) {
       } catch(e) {}
     }
 
-    return res.json({ mode: mode || 'santai', response });
+    return res.json({ 
+  mode: mode || 'santai', 
+  response: response + '\n\n---\n📊 DEBUG INGATAN: ' + (memoryText ? 'ADA (' + memoryText.length + ' karakter)' : 'KOSONG'),
+});
   } catch(e) {
     return res.json({ mode: 'santai', response: 'Halo! Ada yang bisa RHF bantu?' });
   }
