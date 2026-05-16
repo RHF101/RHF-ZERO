@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { message, mode, history, facts } = req.body;
   if (!message) return res.status(400).json({ error: 'Pesan kosong' });
 
-  const GROQ_KEY = process.env.GROQ_API_KEY;
+  const OR_KEY = process.env.OPENROUTER_API_KEY;
 
   // Bangun ingatan
   let memoryText = '';
@@ -15,9 +15,7 @@ export default async function handler(req, res) {
     memoryText += '\n[RIWAYAT CHAT]\n' + history.slice(-50).join('\n') + '\n';
   }
 
-  // ============================================================
-  // SYSTEM PROMPT
-  // ============================================================
+  // System prompt
   let systemPrompt = 'Kamu RHF ZERO, dibuat oleh RHF.';
 
   if (mode === 'serius') {
@@ -25,9 +23,9 @@ export default async function handler(req, res) {
     if (butuhPenjelasan) {
       systemPrompt = 'Kamu RHF ZERO, coding expert. Berikan kode LENGKAP + penjelasan singkat.';
     } else {
-      systemPrompt = 'Kamu RHF ZERO, coding expert. TULIS KODE SAJA. JANGAN JELASKAN. Output kode dalam markdown.';
+      systemPrompt = 'Kamu RHF ZERO, coding expert. TULIS KODE SAJA. Output kode dalam markdown.';
     }
-    systemPrompt += '\nATURAN: Kode HARUS LENGKAP. Bracket TERTUTUP. Indentasi 2 spasi.';
+    systemPrompt += '\nATURAN: Kode HARUS LENGKAP. Bracket TERTUTUP.';
   } else if (mode === 'detektif') {
     systemPrompt += '\nMode DETEKTIF. Analisis mendalam.';
   } else if (mode === 'scraper') {
@@ -43,11 +41,16 @@ export default async function handler(req, res) {
       userMessage = `[INGATAN]\n${memoryText}\n\n[PESAN]\n${message}`;
     }
 
-    const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${OR_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://rhf-zero.vercel.app',
+        'X-Title': 'RHF ZERO'
+      },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'mistralai/mistral-large',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
@@ -64,9 +67,8 @@ export default async function handler(req, res) {
     let format = 'txt';
     if (response.includes('<!DOCTYPE html') || response.includes('<html')) format = 'html';
     else if (response.includes('<?php')) format = 'php';
-    else if (response.includes('body {') || response.includes('@import')) format = 'css';
     else if (response.includes('def ') && response.includes('return ')) format = 'py';
-    else if (response.includes('function ') || response.includes('const ') || response.includes('let ')) format = 'js';
+    else if (response.includes('function ') || response.includes('const ')) format = 'js';
 
     return res.json({
       mode: mode || 'santai',
