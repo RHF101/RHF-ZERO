@@ -21,15 +21,7 @@ export default async function handler(req, res) {
   const identity = 'Kamu RHF ZERO, dibuat oleh RHF. Gunakan ingatan di bawah.';
   let systemPrompt = identity + '\n' + memoryText;
 
-  if (mode === 'serius') {
-    const butuhPenjelasan = /jelaskan|bagaimana|cara|contoh|panduan|tutor|maksud|kenapa/i.test(message);
-    if (butuhPenjelasan) {
-      systemPrompt += '\nMode SERIUS. Berikan kode LENGKAP + penjelasan singkat.';
-    } else {
-      systemPrompt += '\nMode SERIUS. TULIS KODE SAJA. Jangan jelaskan apapun. Langsung output kode dalam markdown.';
-    }
-    systemPrompt += '\n\nATURAN KODE:\n- Kode HARUS LENGKAP, tidak boleh kepotong\n- Semua bracket, tag, kurung HARUS TERTUTUP\n- Indentasi RAPI (2 spasi)\n- Jangan pakai placeholder seperti // TODO atau ...\n- Kalau HTML: sertakan <!DOCTYPE html> sampai </html>\n- Kalau JS: fungsi harus bisa langsung dijalankan\n- Cek ulang sebelum output';
-  } else if (mode === 'detektif') {
+   else if (mode === 'detektif') {
     systemPrompt += '\nMode DETEKTIF. Analisis mendalam.';
   } else if (mode === 'scraper') {
     systemPrompt += '\nMode SCRAPER. Buat HTML LENGKAP.';
