@@ -419,6 +419,10 @@ function handleKeyDown(e) {
 
 async function sendMessage() {
   if (isProcessing) return;
+  if (!UID) {
+    addMessage('ai', '⏳ Menghubungkan... Coba lagi sebentar.', null, false);
+    return;
+  }
   const input = document.getElementById('userInput');
   const message = input.value.trim();
   if (!message) return;
@@ -433,7 +437,14 @@ async function sendMessage() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, mode: currentMode, uid: UID, chatId: currentChatId })
+      body: JSON.stringify({
+        message,
+        mode: currentMode,
+        uid: UID,
+        chatId: currentChatId,
+        history: JSON.parse(localStorage.getItem('rhf_history') || '[]'),
+        facts: JSON.parse(localStorage.getItem('rhf_facts') || '[]')
+      })
     });
     const data = await res.json();
     removeLoading(loadingId);
@@ -444,6 +455,21 @@ async function sendMessage() {
       addMessage('ai', formatCode(data.response, rawCode), rawCode, true);
     } else {
       addMessage('ai', data.response, null, false);
+    }
+
+    // Simpan ke localStorage
+    if (data.simpan) {
+      let history = JSON.parse(localStorage.getItem('rhf_history') || '[]');
+      let facts = JSON.parse(localStorage.getItem('rhf_facts') || '[]');
+      history.push('👤: ' + data.simpan.userMsg);
+      history.push('🤖: ' + data.simpan.aiMsg);
+      if (history.length > 300) history = history.slice(-300);
+      if (data.simpan.isFakta) {
+        facts.push(message);
+        if (facts.length > 30) facts = facts.slice(-30);
+      }
+      localStorage.setItem('rhf_history', JSON.stringify(history));
+      localStorage.setItem('rhf_facts', JSON.stringify(facts));
     }
 
     // Update history list tanpa refresh chat
