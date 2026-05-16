@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   const GROQ_KEY = process.env.GROQ_API_KEY;
 
-  // Bangun ingatan dari history & facts (dikirim frontend)
+  // Bangun ingatan
   let memoryText = '';
   if (facts && facts.length > 0) {
     memoryText += '\n[FAKTA USER]\n' + facts.slice(-20).map(f => '- ' + f).join('\n') + '\n';
@@ -18,17 +18,30 @@ export default async function handler(req, res) {
   // ============================================================
   // SYSTEM PROMPT
   // ============================================================
-  const identity = 'Kamu RHF ZERO, dibuat oleh RHF. Gunakan ingatan di bawah.';
-  let systemPrompt = identity + '\n' + memoryText;
+  let systemPrompt = 'Kamu RHF ZERO, dibuat oleh RHF.';
 
-   else if (mode === 'detektif') {
+  if (mode === 'serius') {
+    const butuhPenjelasan = /jelaskan|bagaimana|cara|contoh|panduan|tutor|maksud|kenapa/i.test(message);
+    if (butuhPenjelasan) {
+      systemPrompt = 'Kamu RHF ZERO, coding expert. Berikan kode LENGKAP + penjelasan singkat.';
+    } else {
+      systemPrompt = 'Kamu RHF ZERO, coding expert. TULIS KODE SAJA. JANGAN JELASKAN. Output kode dalam markdown.';
+    }
+    systemPrompt += '\nATURAN: Kode HARUS LENGKAP. Bracket TERTUTUP. Indentasi 2 spasi.';
+  } else if (mode === 'detektif') {
     systemPrompt += '\nMode DETEKTIF. Analisis mendalam.';
   } else if (mode === 'scraper') {
     systemPrompt += '\nMode SCRAPER. Buat HTML LENGKAP.';
+  } else {
+    systemPrompt += '\nJawab natural, personal. Gunakan ingatan di bawah.';
+    systemPrompt += '\n' + memoryText;
   }
 
   try {
-    const userMessage = memoryText ? `[INGATAN]\n${memoryText}\n\n[PESAN]\n${message}` : message;
+    let userMessage = message;
+    if (memoryText && mode !== 'serius') {
+      userMessage = `[INGATAN]\n${memoryText}\n\n[PESAN]\n${message}`;
+    }
 
     const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -47,17 +60,13 @@ export default async function handler(req, res) {
     const aiData = await aiRes.json();
     const response = aiData.choices?.[0]?.message?.content || 'Maaf, tidak ada respons.';
 
-    // Deteksi format kode untuk download
+    // Deteksi format
     let format = 'txt';
-    const code = response;
-    if (code.includes('<!DOCTYPE html') || code.includes('<html')) format = 'html';
-    else if (code.includes('<?php')) format = 'php';
-    else if (code.includes('body {') || code.includes('@import')) format = 'css';
-    else if (code.includes('def ') && code.includes('return ')) format = 'py';
-    else if (code.includes('function ') || code.includes('const ') || code.includes('let ')) format = 'js';
-    else if (code.includes('package ') && code.includes('class ')) format = 'java';
-    else if (code.includes('import React')) format = 'jsx';
-    else if (code.includes('CREATE TABLE') || code.includes('SELECT ')) format = 'sql';
+    if (response.includes('<!DOCTYPE html') || response.includes('<html')) format = 'html';
+    else if (response.includes('<?php')) format = 'php';
+    else if (response.includes('body {') || response.includes('@import')) format = 'css';
+    else if (response.includes('def ') && response.includes('return ')) format = 'py';
+    else if (response.includes('function ') || response.includes('const ') || response.includes('let ')) format = 'js';
 
     return res.json({
       mode: mode || 'santai',
