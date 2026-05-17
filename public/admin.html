@@ -1,241 +1,430 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RHF ZERO — Admin</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #080b10;
-      color: #d0dce8;
-      font-family: 'JetBrains Mono', monospace;
-      padding: 20px;
-      min-height: 100vh;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>RHF ZERO Admin</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#080b10;
+    color:#fff;
+    font-family:"JetBrains Mono", monospace;
+    padding:20px;
+}
+
+h1,h2{
+    color:#c9a84c;
+    margin-bottom:15px;
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+}
+
+.card{
+    border:1px solid #2b2f36;
+    background:#10151d;
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:15px;
+}
+
+input,select,button{
+    width:100%;
+    padding:12px;
+    background:#0d1117;
+    color:#fff;
+    border:1px solid #2b2f36;
+    border-radius:8px;
+    font-family:"JetBrains Mono", monospace;
+}
+
+button{
+    cursor:pointer;
+    background:#c9a84c;
+    color:#000;
+    font-weight:bold;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    overflow:auto;
+}
+
+th,td{
+    border:1px solid #2b2f36;
+    padding:12px;
+    text-align:left;
+    font-size:13px;
+}
+
+th{
+    background:#121821;
+    color:#c9a84c;
+}
+
+.status-active{
+    color:#00ff88;
+}
+
+.status-dead{
+    color:#ff4d4d;
+}
+
+.flex{
+    display:flex;
+    gap:10px;
+}
+
+.stat{
+    padding:20px;
+    border:1px solid #2b2f36;
+    border-radius:12px;
+    background:#0d1117;
+}
+
+.stat h3{
+    color:#c9a84c;
+    margin-bottom:10px;
+}
+
+.hidden{
+    display:none;
+}
+
+@media(max-width:768px){
+    table{
+        font-size:12px;
     }
-    h1 { color: #c9a84c; margin-bottom: 20px; font-size: 20px; letter-spacing: .1em; }
-    .section {
-      background: #0d1117;
-      border: 1px solid #1e2d3d;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
+
+    th,td{
+        padding:8px;
     }
-    h3 { color: #e8c96f; margin-bottom: 12px; font-size: 14px; letter-spacing: .05em; }
-    input, select, button {
-      padding: 8px 12px;
-      margin: 4px;
-      background: #111820;
-      border: 1px solid #1e2d3d;
-      color: #d0dce8;
-      border-radius: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-    }
-    button {
-      background: #c9a84c;
-      color: #000;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover { background: #e8c96f; }
-    button.danger { background: #ff3860; color: #fff; }
-    button.danger:hover { background: #ff1a4a; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-      margin-top: 8px;
-    }
-    th, td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #1e2d3d;
-      text-align: left;
-    }
-    th { color: #c9a84c; }
-    #status { margin-top: 12px; font-size: 12px; min-height: 20px; }
-    .error { color: #ff3860; }
-    .success { color: #00e676; }
-  </style>
+}
+</style>
 </head>
 <body>
 
-<h1>⚡ RHF ZERO — ADMIN PANEL</h1>
+<div class="container">
 
-<div class="section" id="loginSection">
-  <h3>🔐 Login Admin</h3>
-  <input id="adminPass" type="password" placeholder="Password Admin" autocomplete="off">
-  <button onclick="login()">🔑 Masuk</button>
-  <div id="loginStatus"></div>
-</div>
+    <!-- LOGIN -->
+    <div class="card" id="loginBox">
+        <h1>RHF ZERO ADMIN</h1>
 
-<div id="panel" style="display:none;">
-  <div class="section">
-    <h3>🎫 Buat Kode Akses Baru</h3>
-    <input id="newCode" type="text" placeholder="KODE" style="text-transform:uppercase; width:150px;">
-    <select id="codeType" onchange="toggleDuration()">
-      <option value="trial">Trial</option>
-      <option value="permanent">Permanen</option>
-    </select>
-    <select id="codeDuration">
-      <option value="3600">1 Jam</option>
-      <option value="86400">24 Jam</option>
-      <option value="172800">2 Hari</option>
-      <option value="604800">7 Hari</option>
-    </select>
-    <button onclick="createCode()">➕ Buat Kode</button>
-  </div>
+        <div class="grid">
+            <input type="password" id="adminPassword" autocomplete="off" />
+            <button onclick="login()">LOGIN</button>
+        </div>
+    </div>
 
-  <div class="section">
-    <h3>📋 Daftar Kode Akses</h3>
-    <button onclick="loadCodes()">🔄 Refresh</button>
-    <table id="codeTable">
-      <tr><th>Kode</th><th>Tipe</th><th>Status</th><th>User</th><th>Kadaluarsa</th><th>Aksi</th></tr>
-    </table>
-  </div>
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="hidden">
 
-  <div class="section">
-    <h3>👥 Daftar User</h3>
-    <button onclick="loadUsers()">🔄 Refresh</button>
-    <table id="userTable">
-      <tr><th>UID</th><th>Email</th><th>Kode</th><th>Status</th><th>Aksi</th></tr>
-    </table>
-  </div>
+        <!-- STATS -->
+        <div class="grid">
+            <div class="stat">
+                <h3>Total Codes</h3>
+                <div id="totalCodes">0</div>
+            </div>
 
-  <div id="status"></div>
+            <div class="stat">
+                <h3>Total Users</h3>
+                <div id="totalUsers">0</div>
+            </div>
+
+            <div class="stat">
+                <h3>Active Users</h3>
+                <div id="activeUsers">0</div>
+            </div>
+        </div>
+
+        <!-- CREATE CODE -->
+        <div class="card">
+            <h2>Create Access Code</h2>
+
+            <div class="grid">
+                <input type="text" id="codeInput" />
+
+                <select id="typeInput">
+                    <option value="trial">trial</option>
+                    <option value="permanent">permanent</option>
+                </select>
+
+                <select id="durationInput">
+                    <option value="3600">1 Hour</option>
+                    <option value="86400">1 Day</option>
+                    <option value="172800">2 Days</option>
+                    <option value="604800">7 Days</option>
+                </select>
+
+                <button onclick="createCode()">CREATE</button>
+            </div>
+        </div>
+
+        <!-- CHANGE PASSWORD -->
+        <div class="card">
+            <h2>Change Admin Password</h2>
+
+            <div class="grid">
+                <input type="password" id="newPassword" />
+                <button onclick="changePassword()">UPDATE PASSWORD</button>
+            </div>
+        </div>
+
+        <!-- CODES -->
+        <div class="card">
+            <h2>Access Codes</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>User</th>
+                        <th>Created</th>
+                        <th>Expires</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="codesTable"></tbody>
+            </table>
+        </div>
+
+        <!-- USERS -->
+        <div class="card">
+            <h2>Users</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>UID</th>
+                        <th>Email</th>
+                        <th>Access Code</th>
+                        <th>Blocked</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
+
+    </div>
 </div>
 
 <script>
-let adminPassword = '';
+let adminPassword = "";
 
-async function login() {
-  const inputPass = document.getElementById('adminPass').value;
-  if (!inputPass) {
-    document.getElementById('loginStatus').innerHTML = '<span class="error">❌ Masukkan password.</span>';
-    return;
-  }
-  adminPassword = inputPass;
-
-  try {
-    const res = await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'listCodes', password: adminPassword })
+async function api(action, data = {}) {
+    const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: {
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify({
+            action,
+            password: adminPassword,
+            data
+        })
     });
-    const data = await res.json();
-    if (res.ok && data.success !== false) {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('panel').style.display = 'block';
-      loadCodes();
-      loadUsers();
-    } else {
-      document.getElementById('loginStatus').innerHTML = '<span class="error">❌ ' + (data.error || 'Password salah.') + '</span>';
-    }
-  } catch(e) {
-    document.getElementById('loginStatus').innerHTML = '<span class="error">❌ Gagal terhubung.</span>';
-  }
+
+    return await res.json();
 }
 
-async function callAdmin(action, extra = {}) {
-  const res = await fetch('/api/admin', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, password: adminPassword, data: extra })
-  });
-  return res.json();
+async function login() {
+    const password = document.getElementById("adminPassword").value;
+
+    adminPassword = password;
+
+    const test = await api("listCodes");
+
+    if (test.error) {
+        alert("Login failed");
+        return;
+    }
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+
+    loadAll();
+}
+
+async function loadAll() {
+    await loadCodes();
+    await loadUsers();
 }
 
 async function createCode() {
-  const code = document.getElementById('newCode').value.trim().toUpperCase();
-  if (!code) {
-    document.getElementById('status').innerHTML = '<span class="error">❌ Isi kode dulu.</span>';
-    return;
-  }
-  const type = document.getElementById('codeType').value;
-  const duration = type === 'trial' ? parseInt(document.getElementById('codeDuration').value) : null;
+    const code = document.getElementById("codeInput").value.trim();
+    const type = document.getElementById("typeInput").value;
+    const duration = document.getElementById("durationInput").value;
 
-  const r = await callAdmin('createCode', { code, type, duration });
-  if (r.success) {
-    document.getElementById('newCode').value = '';
-    document.getElementById('status').innerHTML = '<span class="success">✅ Kode <b>' + r.code + '</b> berhasil dibuat.</span>';
-    loadCodes();
-  } else {
-    document.getElementById('status').innerHTML = '<span class="error">❌ ' + (r.error || 'Gagal.') + '</span>';
-  }
-}
-
-async function loadCodes() {
-  const r = await callAdmin('listCodes');
-  const t = document.getElementById('codeTable');
-  if (r.success && r.codes) {
-    if (r.codes.length === 0) {
-      t.innerHTML = '<tr><td colspan="6" style="color:#5a7a96;text-align:center;">Belum ada kode.</td></tr>';
-      return;
+    if (!code) {
+        alert("Code required");
+        return;
     }
-    t.innerHTML = '<tr><th>Kode</th><th>Tipe</th><th>Status</th><th>User</th><th>Kadaluarsa</th><th>Aksi</th></tr>';
-    r.codes.forEach(c => {
-      const expired = c.expires_at ? new Date(c.expires_at) < new Date() : false;
-      const status = !c.active ? '❌ Nonaktif' : (expired ? '⏰ Kadaluarsa' : '✅ Aktif');
-      const expText = c.expires_at ? new Date(c.expires_at).toLocaleDateString('id-ID') : 'Permanen';
-      t.innerHTML += `<tr>
-        <td><b>${c.code}</b></td>
-        <td>${c.type === 'trial' ? 'Trial' : 'Permanen'}</td>
-        <td>${status}</td>
-        <td>${c.used_by ? c.used_by.substring(0,8)+'...' : '-'}</td>
-        <td>${expText}</td>
-        <td><button class="danger" onclick="deleteCode('${c.code}')">🗑️ Hapus</button></td>
-      </tr>`;
+
+    await api("createCode", {
+        code,
+        type,
+        duration
     });
-  } else {
-    t.innerHTML = '<tr><td colspan="6" style="color:#ff3860;">Gagal memuat data.</td></tr>';
-  }
+
+    document.getElementById("codeInput").value = "";
+
+    loadCodes();
 }
 
 async function deleteCode(code) {
-  if (!confirm('Nonaktifkan kode ' + code + '?')) return;
-  await callAdmin('deleteCode', { code });
-  loadCodes();
-  document.getElementById('status').innerHTML = '<span class="success">✅ Kode <b>' + code + '</b> dinonaktifkan.</span>';
+    const ok = confirm("Disable this code?");
+
+    if (!ok) return;
+
+    await api("deleteCode", { code });
+
+    loadCodes();
+}
+
+async function loadCodes() {
+    const codes = await api("listCodes");
+
+    const table = document.getElementById("codesTable");
+
+    table.innerHTML = "";
+
+    document.getElementById("totalCodes").innerText = codes.length;
+
+    let activeUsers = 0;
+
+    codes.forEach(code => {
+
+        if (code.used_by) {
+            activeUsers++;
+        }
+
+        const active =
+            code.active
+            ? '<span class="status-active">ACTIVE</span>'
+            : '<span class="status-dead">DISABLED</span>';
+
+        const created = code.created_at
+            ? new Date(code.created_at).toLocaleString()
+            : "-";
+
+        const expires = code.expires_at
+            ? new Date(code.expires_at).toLocaleString()
+            : "Never";
+
+        table.innerHTML += `
+            <tr>
+                <td>${code.code}</td>
+                <td>${code.type}</td>
+                <td>${active}</td>
+                <td>${code.used_by || "-"}</td>
+                <td>${created}</td>
+                <td>${expires}</td>
+                <td>
+                    <button onclick="deleteCode('${code.code}')">
+                        DELETE
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("activeUsers").innerText = activeUsers;
 }
 
 async function loadUsers() {
-  const r = await callAdmin('listUsers');
-  const t = document.getElementById('userTable');
-  if (r.success && r.users) {
-    if (r.users.length === 0) {
-      t.innerHTML = '<tr><td colspan="5" style="color:#5a7a96;text-align:center;">Belum ada user.</td></tr>';
-      return;
-    }
-    t.innerHTML = '<tr><th>UID</th><th>Email</th><th>Kode</th><th>Status</th><th>Aksi</th></tr>';
-    r.users.forEach(u => {
-      t.innerHTML += `<tr>
-        <td>${u.uid ? u.uid.substring(0,10)+'...' : '-'}</td>
-        <td>${u.email || '-'}</td>
-        <td>${u.accessCode || '-'}</td>
-        <td>${u.blocked ? '❌ Diblokir' : '✅ Aktif'}</td>
-        <td>${u.blocked ? '<button onclick="unblockUser(\''+u.uid+'\')">Buka</button>' : '<button class="danger" onclick="blockUser(\''+u.uid+'\')">Blokir</button>'}</td>
-      </tr>`;
+    const users = await api("listUsers");
+
+    const table = document.getElementById("usersTable");
+
+    table.innerHTML = "";
+
+    document.getElementById("totalUsers").innerText = users.length;
+
+    users.forEach(user => {
+
+        const blocked = user.blocked
+            ? '<span class="status-dead">BLOCKED</span>'
+            : '<span class="status-active">ACTIVE</span>';
+
+        const action = user.blocked
+            ? `<button onclick="unblockUser('${user.uid}')">UNBLOCK</button>`
+            : `<button onclick="blockUser('${user.uid}')">BLOCK</button>`;
+
+        table.innerHTML += `
+            <tr>
+                <td>${user.uid}</td>
+                <td>${user.email || "-"}</td>
+                <td>${user.accessCode || "-"}</td>
+                <td>${blocked}</td>
+                <td>${action}</td>
+            </tr>
+        `;
     });
-  } else {
-    t.innerHTML = '<tr><td colspan="5" style="color:#ff3860;">Gagal memuat data.</td></tr>';
-  }
 }
 
 async function blockUser(uid) {
-  if (!confirm('Blokir user ini?')) return;
-  await callAdmin('blockUser', { uid });
-  loadUsers();
+    const ok = confirm("Block this user?");
+
+    if (!ok) return;
+
+    await api("blockUser", { uid });
+
+    loadUsers();
 }
 
 async function unblockUser(uid) {
-  await callAdmin('unblockUser', { uid });
-  loadUsers();
+    const ok = confirm("Unblock this user?");
+
+    if (!ok) return;
+
+    await api("unblockUser", { uid });
+
+    loadUsers();
 }
 
-function toggleDuration() {
-  const type = document.getElementById('codeType').value;
-  document.getElementById('codeDuration').style.display = type === 'trial' ? 'inline' : 'none';
+async function changePassword() {
+    const newPassword =
+        document.getElementById("newPassword").value;
+
+    if (!newPassword) {
+        alert("Password required");
+        return;
+    }
+
+    await api("changePassword", {
+        newPassword
+    });
+
+    alert("Password updated");
 }
 </script>
+
 </body>
 </html>
