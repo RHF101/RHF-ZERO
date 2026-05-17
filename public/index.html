@@ -457,19 +457,19 @@ async function sendMessage() {
       addMessage('ai', data.response, null, false);
     }
 
-    // Simpan ke localStorage
+  // Simpan ke localStorage per akun
     if (data.simpan) {
-      let history = JSON.parse(localStorage.getItem('rhf_history') || '[]');
-      let facts = JSON.parse(localStorage.getItem('rhf_facts') || '[]');
-      history.push('👤: ' + data.simpan.userMsg);
-      history.push('🤖: ' + data.simpan.aiMsg);
-      if (history.length > 300) history = history.slice(-300);
+      let h = JSON.parse(localStorage.getItem('rhf_history_' + UID) || '[]');
+      let f = JSON.parse(localStorage.getItem('rhf_facts_' + UID) || '[]');
+      h.push('👤: ' + data.simpan.userMsg);
+      h.push('🤖: ' + data.simpan.aiMsg);
+      if (h.length > 300) h = h.slice(-300);
       if (data.simpan.isFakta) {
-        facts.push(message);
-        if (facts.length > 30) facts = facts.slice(-30);
+        f.push(message);
+        if (f.length > 30) f = f.slice(-30);
       }
-      localStorage.setItem('rhf_history', JSON.stringify(history));
-      localStorage.setItem('rhf_facts', JSON.stringify(facts));
+      localStorage.setItem('rhf_history_' + UID, JSON.stringify(h));
+      localStorage.setItem('rhf_facts_' + UID, JSON.stringify(f));
     }
 
     // Update history list tanpa refresh chat
@@ -494,26 +494,6 @@ async function sendMessage() {
   isProcessing = false;
   document.getElementById('btnSend').disabled = false;
   document.getElementById('userInput').focus();
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-function addMessage(role, content, rawCode, showActions) {
-  const msgs = document.getElementById('chatMessages');
-  const div = document.createElement('div');
-  div.className = 'message ' + role;
-  const av = role === 'user' ? '👤' : '🧠';
-  let actions = '';
-  if (showActions && rawCode) {
-    actions = `<div class="code-actions">
-      <button class="btn-copy" onclick="copyCode(this)" data-code="${encodeURIComponent(rawCode)}">📋 Salin</button>
-      <button class="btn-download" onclick="downloadCode(this)" data-code="${encodeURIComponent(rawCode)}">📥 Download</button>
-    </div>`;
-  }
-  div.innerHTML = `<div class="avatar ${role}">${av}</div><div><div class="bubble ${role}">${content}</div>${actions}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
 }
 
 function addLoading() {
