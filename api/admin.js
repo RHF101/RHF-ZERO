@@ -2,94 +2,103 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action, password, data } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password diperlukan' });
+
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(403).json({ error: 'Password salah.' });
+  }
+
+  const FB_KEY = process.env.FIREBASE_API_KEY;
+  const FB_PROJECT = process.env.FIREBASE_PROJECT_ID || 'rhf-confrims';
+  const BASE = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
 
   try {
-    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
-    const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
-
-    if (getApps().length === 0) {
-      const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID || 'rhf-confrims',
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-          privateKey: privateKey,
-        }),
-      });
-    }
-
-    const db = getFirestore();
-
-    // Ambil password dari Firestore, kalau belum ada, buat default
-    const adminRef = db.collection('admin').doc('config');
-    const adminDoc = await adminRef.get();
-    
-    let adminPassword = 'admin123';
-    if (adminDoc.exists && adminDoc.data().password) {
-      adminPassword = adminDoc.data().password;
-    } else {
-      await adminRef.set({ password: 'admin123' });
-    }
-
-    // VERIFIKASI PASSWORD
-    if (password !== adminPassword) {
-      return res.status(403).json({ error: 'Password salah.' });
-    }
-
     switch (action) {
-      case 'changePassword': {
-        const newPass = data?.newPassword;
-        if (!newPass || newPass.length < 6) return res.json({ error: 'Minimal 6 karakter.' });
-        await adminRef.update({ password: newPass });
-        return res.json({ success: true });
-      }
-
       case 'createCode': {
         const code = (data?.code || '').trim().toUpperCase();
         if (!code) return res.json({ error: 'Kode diperlukan.' });
         const type = data?.type || 'trial';
         const duration = type === 'trial' ? (data?.duration || 3600) : null;
-        const expires = duration ? new Date(Date.now() + duration * 1000) : null;
+        const expires = duration ? new Date(Date.now() + duration * 1000).toISOString() : null;
 
-        await db.collection('access_codes').doc(code).set({
-          code, type, duration,
-          active: true, used_by: null,
-          created_at: FieldValue.serverTimestamp(),
-          expires_at: expires || null
+        await fetch(`${BASE}/access_codes?documentId=${code}&key=${FB_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fields: {
+              code: { stringValue: code },
+              type: { stringValue: type },
+              duration: { integerValue: duration || 0 },
+              active: { booleanValue: true },
+              used_by: { nullValue: null },
+              created_at: { timestampValue: new Date().toISOString() },
+              expires_at: expires ? { timestampValue: expires } : { nullValue: null }
+            }
+          })
         });
         return res.json({ success: true, code });
       }
 
       case 'deleteCode': {
         const code = (data?.code || '').trim().toUpperCase();
-        await db.collection('access_codes').doc(code).update({ active: false });
+        await fetch(`${BASE}/access_codes/${code}?key=${FB_KEY}`, { method: 'DELETE' });
         return res.json({ success: true });
       }
 
       case 'listCodes': {
-        const snap = await db.collection('access_codes').orderBy('created_at', 'desc').limit(50).get();
+        const r = await fetch(`${BASE}/access_codes?key=${FB_KEY}`);
+        const d = await r.json();
         const codes = [];
-        snap.forEach(doc => {
-          const d = doc.data();
-          codes.push({
-            code: d.code, type: d.type, active: d.active,
-            used_by: d.used_by,
-            created_at: d.created_at?.toDate?.()?.toISOString(),
-            expires_at: d.expires_at?.toDate?.()?.toISOString()
+        if (d.documents) {
+          d.documents.forEach(doc => {
+            const f = doc.fields || {};
+            codes.push({
+              code: f.code?.stringValue,
+              type: f.type?.stringValue,
+              active: f.active?.booleanValue,
+              used_by: f.used_by?.stringValue || null,
+              created_at: f.created_at?.timestampValue,
+              expires_at: f.expires_at?.timestampValue
+            });
           });
-        });
+        }
         return res.json({ success: true, codes });
       }
 
       case 'listUsers': {
-        const snap = await db.collection('users').limit(50).get();
+        const r = await fetch(`${BASE}/users?key=${FB_KEY}`);
+        const d = await r.json();
         const users = [];
-        snap.forEach(doc => users.push({ uid: doc.id, ...doc.data() }));
+        if (d.documents) {
+          d.documents.forEach(doc => {
+            const f = doc.fields || {};
+            users.push({
+              uid: doc.name.split('/').pop(),
+              email: f.email?.stringValue || '',
+              accessCode: f.accessCode?.stringValue || '',
+              blocked: f.blocked?.booleanValue || false
+            });
+          });
+        }
         return res.json({ success: true, users });
       }
 
       case 'blockUser': {
-        await db.collection('users').doc(data?.uid).update({ blocked: true });
+        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { blocked: { booleanValue: true } } })
+        });
+        return res.json({ success: true });
+      }
+
+      case 'unblockUser': {
+        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { blocked: { booleanValue: false } } })
+        });
         return res.json({ success: true });
       }
 
@@ -97,7 +106,7 @@ export default async function handler(req, res) {
         return res.json({ error: 'Action tidak dikenal.' });
     }
   } catch (error) {
-    console.error('Admin Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
+
