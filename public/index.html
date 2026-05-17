@@ -696,8 +696,13 @@ const provider = new firebase.auth.GoogleAuthProvider();
 let currentUser  = null;
 let currentMode  = 'santai';
 let currentChatId= null;
-let pendingImage = null; // base64
+let pendingImage = null;
 let isLoading    = false;
+
+// ── CEK KODE AKSES ──
+if (localStorage.getItem('rhf_access_valid') !== 'true') {
+  window.location.href = '/access.html';
+}
 
 // ── AUTH ──
 auth.onAuthStateChanged(user => {
@@ -714,6 +719,14 @@ auth.onAuthStateChanged(user => {
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').classList.remove('visible');
   }
+});
+
+function signIn()  { auth.signInWithPopup(provider).catch(e => toast('Login gagal: ' + e.message)); }
+function signOut() {
+  localStorage.removeItem('rhf_access_valid');
+  localStorage.removeItem('rhf_access_code');
+  auth.signOut();
+}
 });
 
 function signIn()  { auth.signInWithPopup(provider).catch(e => toast('Login gagal: ' + e.message)); }
