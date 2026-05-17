@@ -1,110 +1,241 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RHF ZERO — Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #080b10;
+      color: #d0dce8;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 { color: #c9a84c; margin-bottom: 20px; font-size: 20px; letter-spacing: .1em; }
+    .section {
+      background: #0d1117;
+      border: 1px solid #1e2d3d;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    h3 { color: #e8c96f; margin-bottom: 12px; font-size: 14px; letter-spacing: .05em; }
+    input, select, button {
+      padding: 8px 12px;
+      margin: 4px;
+      background: #111820;
+      border: 1px solid #1e2d3d;
+      color: #d0dce8;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    button {
+      background: #c9a84c;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #e8c96f; }
+    button.danger { background: #ff3860; color: #fff; }
+    button.danger:hover { background: #ff1a4a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #1e2d3d;
+      text-align: left;
+    }
+    th { color: #c9a84c; }
+    #status { margin-top: 12px; font-size: 12px; min-height: 20px; }
+    .error { color: #ff3860; }
+    .success { color: #00e676; }
+  </style>
+</head>
+<body>
 
-  const { action, password, data } = req.body;
-  if (!password) return res.status(400).json({ error: 'Password diperlukan' });
+<h1>⚡ RHF ZERO — ADMIN PANEL</h1>
 
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(403).json({ error: 'Password salah.' });
+<div class="section" id="loginSection">
+  <h3>🔐 Login Admin</h3>
+  <input id="adminPass" type="password" placeholder="Password Admin" autocomplete="off">
+  <button onclick="login()">🔑 Masuk</button>
+  <div id="loginStatus"></div>
+</div>
+
+<div id="panel" style="display:none;">
+  <div class="section">
+    <h3>🎫 Buat Kode Akses Baru</h3>
+    <input id="newCode" type="text" placeholder="KODE" style="text-transform:uppercase; width:150px;">
+    <select id="codeType" onchange="toggleDuration()">
+      <option value="trial">Trial</option>
+      <option value="permanent">Permanen</option>
+    </select>
+    <select id="codeDuration">
+      <option value="3600">1 Jam</option>
+      <option value="86400">24 Jam</option>
+      <option value="172800">2 Hari</option>
+      <option value="604800">7 Hari</option>
+    </select>
+    <button onclick="createCode()">➕ Buat Kode</button>
+  </div>
+
+  <div class="section">
+    <h3>📋 Daftar Kode Akses</h3>
+    <button onclick="loadCodes()">🔄 Refresh</button>
+    <table id="codeTable">
+      <tr><th>Kode</th><th>Tipe</th><th>Status</th><th>User</th><th>Kadaluarsa</th><th>Aksi</th></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>👥 Daftar User</h3>
+    <button onclick="loadUsers()">🔄 Refresh</button>
+    <table id="userTable">
+      <tr><th>UID</th><th>Email</th><th>Kode</th><th>Status</th><th>Aksi</th></tr>
+    </table>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+let adminPassword = '';
+
+async function login() {
+  const inputPass = document.getElementById('adminPass').value;
+  if (!inputPass) {
+    document.getElementById('loginStatus').innerHTML = '<span class="error">❌ Masukkan password.</span>';
+    return;
   }
-
-  const FB_KEY = process.env.FIREBASE_API_KEY;
-  const FB_PROJECT = process.env.FIREBASE_PROJECT_ID || 'rhf-confrims';
-  const BASE = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+  adminPassword = inputPass;
 
   try {
-    switch (action) {
-      case 'createCode': {
-        const code = (data?.code || '').trim().toUpperCase();
-        if (!code) return res.json({ error: 'Kode diperlukan.' });
-        const type = data?.type || 'trial';
-        const duration = type === 'trial' ? (data?.duration || 3600) : null;
-        const expires = duration ? new Date(Date.now() + duration * 1000).toISOString() : null;
-
-        await fetch(`${BASE}/access_codes?documentId=${code}&key=${FB_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fields: {
-              code: { stringValue: code },
-              type: { stringValue: type },
-              duration: { integerValue: duration || 0 },
-              active: { booleanValue: true },
-              used_by: { nullValue: null },
-              created_at: { timestampValue: new Date().toISOString() },
-              expires_at: expires ? { timestampValue: expires } : { nullValue: null }
-            }
-          })
-        });
-        return res.json({ success: true, code });
-      }
-
-      case 'deleteCode': {
-        await fetch(`${BASE}/access_codes/${data.code.toUpperCase()}?key=${FB_KEY}`, { method: 'DELETE' });
-        return res.json({ success: true });
-      }
-
-      case 'listCodes': {
-        const r = await fetch(`${BASE}/access_codes?key=${FB_KEY}`);
-        const d = await r.json();
-        const codes = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            codes.push({
-              code: f.code?.stringValue,
-              type: f.type?.stringValue,
-              active: f.active?.booleanValue,
-              used_by: f.used_by?.stringValue || null,
-              created_at: f.created_at?.timestampValue,
-              expires_at: f.expires_at?.timestampValue
-            });
-          });
-        }
-        return res.json({ success: true, codes });
-      }
-
-      case 'listUsers': {
-        const r = await fetch(`${BASE}/users?key=${FB_KEY}`);
-        const d = await r.json();
-        const users = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            users.push({
-              uid: doc.name.split('/').pop(),
-              email: f.email?.stringValue || '',
-              accessCode: f.accessCode?.stringValue || '',
-              blocked: f.blocked?.booleanValue || false
-            });
-          });
-        }
-        return res.json({ success: true, users });
-      }
-
-      case 'blockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: true } } })
-        });
-        return res.json({ success: true });
-      }
-
-      case 'unblockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: false } } })
-        });
-        return res.json({ success: true });
-      }
-
-      default:
-        return res.json({ error: 'Action tidak dikenal.' });
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'listCodes', password: adminPassword })
+    });
+    const data = await res.json();
+    if (res.ok && data.success !== false) {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('panel').style.display = 'block';
+      loadCodes();
+      loadUsers();
+    } else {
+      document.getElementById('loginStatus').innerHTML = '<span class="error">❌ ' + (data.error || 'Password salah.') + '</span>';
     }
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch(e) {
+    document.getElementById('loginStatus').innerHTML = '<span class="error">❌ Gagal terhubung.</span>';
   }
 }
+
+async function callAdmin(action, extra = {}) {
+  const res = await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, password: adminPassword, data: extra })
+  });
+  return res.json();
+}
+
+async function createCode() {
+  const code = document.getElementById('newCode').value.trim().toUpperCase();
+  if (!code) {
+    document.getElementById('status').innerHTML = '<span class="error">❌ Isi kode dulu.</span>';
+    return;
+  }
+  const type = document.getElementById('codeType').value;
+  const duration = type === 'trial' ? parseInt(document.getElementById('codeDuration').value) : null;
+
+  const r = await callAdmin('createCode', { code, type, duration });
+  if (r.success) {
+    document.getElementById('newCode').value = '';
+    document.getElementById('status').innerHTML = '<span class="success">✅ Kode <b>' + r.code + '</b> berhasil dibuat.</span>';
+    loadCodes();
+  } else {
+    document.getElementById('status').innerHTML = '<span class="error">❌ ' + (r.error || 'Gagal.') + '</span>';
+  }
+}
+
+async function loadCodes() {
+  const r = await callAdmin('listCodes');
+  const t = document.getElementById('codeTable');
+  if (r.success && r.codes) {
+    if (r.codes.length === 0) {
+      t.innerHTML = '<tr><td colspan="6" style="color:#5a7a96;text-align:center;">Belum ada kode.</td></tr>';
+      return;
+    }
+    t.innerHTML = '<tr><th>Kode</th><th>Tipe</th><th>Status</th><th>User</th><th>Kadaluarsa</th><th>Aksi</th></tr>';
+    r.codes.forEach(c => {
+      const expired = c.expires_at ? new Date(c.expires_at) < new Date() : false;
+      const status = !c.active ? '❌ Nonaktif' : (expired ? '⏰ Kadaluarsa' : '✅ Aktif');
+      const expText = c.expires_at ? new Date(c.expires_at).toLocaleDateString('id-ID') : 'Permanen';
+      t.innerHTML += `<tr>
+        <td><b>${c.code}</b></td>
+        <td>${c.type === 'trial' ? 'Trial' : 'Permanen'}</td>
+        <td>${status}</td>
+        <td>${c.used_by ? c.used_by.substring(0,8)+'...' : '-'}</td>
+        <td>${expText}</td>
+        <td><button class="danger" onclick="deleteCode('${c.code}')">🗑️ Hapus</button></td>
+      </tr>`;
+    });
+  } else {
+    t.innerHTML = '<tr><td colspan="6" style="color:#ff3860;">Gagal memuat data.</td></tr>';
+  }
+}
+
+async function deleteCode(code) {
+  if (!confirm('Nonaktifkan kode ' + code + '?')) return;
+  await callAdmin('deleteCode', { code });
+  loadCodes();
+  document.getElementById('status').innerHTML = '<span class="success">✅ Kode <b>' + code + '</b> dinonaktifkan.</span>';
+}
+
+async function loadUsers() {
+  const r = await callAdmin('listUsers');
+  const t = document.getElementById('userTable');
+  if (r.success && r.users) {
+    if (r.users.length === 0) {
+      t.innerHTML = '<tr><td colspan="5" style="color:#5a7a96;text-align:center;">Belum ada user.</td></tr>';
+      return;
+    }
+    t.innerHTML = '<tr><th>UID</th><th>Email</th><th>Kode</th><th>Status</th><th>Aksi</th></tr>';
+    r.users.forEach(u => {
+      t.innerHTML += `<tr>
+        <td>${u.uid ? u.uid.substring(0,10)+'...' : '-'}</td>
+        <td>${u.email || '-'}</td>
+        <td>${u.accessCode || '-'}</td>
+        <td>${u.blocked ? '❌ Diblokir' : '✅ Aktif'}</td>
+        <td>${u.blocked ? '<button onclick="unblockUser(\''+u.uid+'\')">Buka</button>' : '<button class="danger" onclick="blockUser(\''+u.uid+'\')">Blokir</button>'}</td>
+      </tr>`;
+    });
+  } else {
+    t.innerHTML = '<tr><td colspan="5" style="color:#ff3860;">Gagal memuat data.</td></tr>';
+  }
+}
+
+async function blockUser(uid) {
+  if (!confirm('Blokir user ini?')) return;
+  await callAdmin('blockUser', { uid });
+  loadUsers();
+}
+
+async function unblockUser(uid) {
+  await callAdmin('unblockUser', { uid });
+  loadUsers();
+}
+
+function toggleDuration() {
+  const type = document.getElementById('codeType').value;
+  document.getElementById('codeDuration').style.display = type === 'trial' ? 'inline' : 'none';
+}
+</script>
+</body>
+</html>
