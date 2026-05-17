@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RHF ZERO — Admin</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#080b10; color:#d0dce8; font-family:monospace; padding:20px; }
+    h1 { color:#c9a84c; margin-bottom:20px; }
+    .section { background:#0d1117; border:1px solid #1e2d3d; border-radius:8px; padding:16px; margin-bottom:16px; }
+    input, select, button { padding:8px 12px; margin:4px; background:#111820; border:1px solid #1e2d3d; color:#d0dce8; border-radius:4px; }
+    button { background:#c9a84c; color:#000; cursor:pointer; font-weight:bold; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { padding:6px 8px; border-bottom:1px solid #1e2d3d; text-align:left; }
+    th { color:#c9a84c; }
+    #status { color:#00e676; margin-top:8px; }
+  </style>
+</head>
+<body>
+
+<h1>⚡ RHF ZERO — ADMIN</h1>
+
+<!-- PASSWORD -->
+<div class="section">
+  <input id="adminPass" type="password" placeholder="Password Admin">
+  <button onclick="login()">🔑 Masuk</button>
+</div>
+
+<div id="panel" style="display:none;">
+
+  <!-- GANTI PASSWORD -->
+  <div class="section">
+    <h3>🔒 Ganti Password</h3>
+    <input id="newPass" type="password" placeholder="Password Baru">
+    <button onclick="changePassword()">Simpan</button>
+  </div>
+
+  <!-- BUAT KODE -->
+  <div class="section">
+    <h3>🎫 Buat Kode Akses</h3>
+    <input id="newCode" type="text" placeholder="KODE" style="text-transform:uppercase">
+    <select id="codeType">
+      <option value="trial">Trial</option>
+      <option value="permanent">Permanen</option>
+    </select>
+    <select id="codeDuration">
+      <option value="3600">1 Jam</option>
+      <option value="86400">24 Jam</option>
+      <option value="172800">2 Hari</option>
+    </select>
+    <button onclick="createCode()">Buat</button>
+  </div>
+
+  <!-- LIST KODE -->
+  <div class="section">
+    <h3>📋 Daftar Kode</h3>
+    <button onclick="loadCodes()">Refresh</button>
+    <table id="codeTable"></table>
+  </div>
+
+  <!-- LIST USER -->
+  <div class="section">
+    <h3>👥 Daftar User</h3>
+    <button onclick="loadUsers()">Refresh</button>
+    <table id="userTable"></table>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+let adminPassword = '';
+
+function login() {
+  adminPassword = document.getElementById('adminPass').value;
+  document.getElementById('panel').style.display = 'block';
+}
+
+async function callAdmin(action, data = {}) {
+  const res = await fetch('/api/admin', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action, password: adminPassword, data })
+  });
+  return res.json();
+}
+
+async function changePassword() {
+  const np = document.getElementById('newPass').value;
+  const r = await callAdmin('changePassword', { newPassword: np });
+  document.getElementById('status').textContent = r.success ? '✅ Password berubah' : '❌ '+r.error;
+}
+
+async function createCode() {
+  const code = document.getElementById('newCode').value;
+  const type = document.getElementById('codeType').value;
+  const duration = type === 'trial' ? parseInt(document.getElementById('codeDuration').value) : null;
+  const r = await callAdmin('createCode', { code, type, duration });
+  document.getElementById('status').textContent = r.success ? '✅ Kode '+r.code+' dibuat' : '❌ '+r.error;
+}
+
+async function loadCodes() {
+  const r = await callAdmin('listCodes');
+  if (r.success) {
+    const t = document.getElementById('codeTable');
+    t.innerHTML = '<tr><th>Kode</th><th>Tipe</th><th>Aktif</th><th>Aksi</th></tr>';
+    r.codes.forEach(c => {
+      t.innerHTML += `<tr><td>${c.code}</td><td>${c.type}</td><td>${c.active?'✅':'❌'}</td>
+        <td><button onclick="deleteCode('${c.code}')">Hapus</button></td></tr>`;
+    });
+  }
+}
+
+async function deleteCode(code) {
+  await callAdmin('deleteCode', { code });
+  loadCodes();
+}
+
+async function loadUsers() {
+  const r = await callAdmin('listUsers');
+  if (r.success) {
+    const t = document.getElementById('userTable');
+    t.innerHTML = '<tr><th>UID</th><th>Email</th><th>Blocked</th><th>Aksi</th></tr>';
+    r.users.forEach(u => {
+      t.innerHTML += `<tr><td>${u.uid}</td><td>${u.email||'-'}</td><td>${u.blocked?'❌':'✅'}</td>
+        <td><button onclick="blockUser('${u.uid}')">Blokir</button></td></tr>`;
+    });
+  }
+}
+
+async function blockUser(uid) {
+  await callAdmin('blockUser', { uid });
+  loadUsers();
+}
+</script>
+</body>
+</html>
