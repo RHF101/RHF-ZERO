@@ -1,112 +1,174 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-  const { action, password, data } = req.body;
-  if (!password) return res.status(400).json({ error: 'Password diperlukan' });
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(403).json({ error: 'Password salah.' });
-  }
-
-  const FB_KEY = process.env.FIREBASE_API_KEY;
-  const FB_PROJECT = process.env.FIREBASE_PROJECT_ID || 'rhf-confrims';
-  const BASE = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
-
-  try {
-    switch (action) {
-      case 'createCode': {
-        const code = (data?.code || '').trim().toUpperCase();
-        if (!code) return res.json({ error: 'Kode diperlukan.' });
-        const type = data?.type || 'trial';
-        const duration = type === 'trial' ? (data?.duration || 3600) : null;
-        const expires = duration ? new Date(Date.now() + duration * 1000).toISOString() : null;
-
-        await fetch(`${BASE}/access_codes?documentId=${code}&key=${FB_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fields: {
-              code: { stringValue: code },
-              type: { stringValue: type },
-              duration: { integerValue: duration || 0 },
-              active: { booleanValue: true },
-              used_by: { nullValue: null },
-              created_at: { timestampValue: new Date().toISOString() },
-              expires_at: expires ? { timestampValue: expires } : { nullValue: null }
-            }
-          })
-        });
-        return res.json({ success: true, code });
-      }
-
-      case 'deleteCode': {
-        const code = (data?.code || '').trim().toUpperCase();
-        await fetch(`${BASE}/access_codes/${code}?key=${FB_KEY}`, { method: 'DELETE' });
-        return res.json({ success: true });
-      }
-
-      case 'listCodes': {
-        const r = await fetch(`${BASE}/access_codes?key=${FB_KEY}`);
-        const d = await r.json();
-        const codes = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            codes.push({
-              code: f.code?.stringValue,
-              type: f.type?.stringValue,
-              active: f.active?.booleanValue,
-              used_by: f.used_by?.stringValue || null,
-              created_at: f.created_at?.timestampValue,
-              expires_at: f.expires_at?.timestampValue
-            });
-          });
-        }
-        return res.json({ success: true, codes });
-      }
-
-      case 'listUsers': {
-        const r = await fetch(`${BASE}/users?key=${FB_KEY}`);
-        const d = await r.json();
-        const users = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            users.push({
-              uid: doc.name.split('/').pop(),
-              email: f.email?.stringValue || '',
-              accessCode: f.accessCode?.stringValue || '',
-              blocked: f.blocked?.booleanValue || false
-            });
-          });
-        }
-        return res.json({ success: true, users });
-      }
-
-      case 'blockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: true } } })
-        });
-        return res.json({ success: true });
-      }
-
-      case 'unblockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: false } } })
-        });
-        return res.json({ success: true });
-      }
-
-      default:
-        return res.json({ error: 'Action tidak dikenal.' });
-    }
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: "rhf-confrims",
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    }),
+  });
 }
 
+const db = getFirestore();
+
+function json(res, status, data) {
+  res.status(status).json(data);
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return json(res, 405, { error: "Method not allowed" });
+  }
+
+  try {
+    const { action, password, data } = req.body;
+
+    if (password !== ADMIN_PASSWORD) {
+      return json(res, 401, { error: "Invalid password" });
+    }
+
+    // ============================================================
+    // CREATE CODE
+    // ============================================================
+    if (action === "createCode") {
+      const { code, type, duration } = data;
+
+      if (!code || !type || !duration) {
+        return json(res, 400, {
+          error: "Missing fields",
+        });
+      }
+
+      const now = Date.now();
+
+      const expiresAt =
+        type === "trial" ? now + Number(duration) * 1000 : null;
+
+      await db.collection("access_codes").doc(code).set({
+        code,
+        type,
+        duration,
+        active: true,
+        used_by: "",
+        created_at: now,
+        expires_at: expiresAt,
+      });
+
+      return json(res, 200, {
+        success: true,
+        message: "Code created",
+      });
+    }
+
+    // ============================================================
+    // DELETE CODE
+    // ============================================================
+    if (action === "deleteCode") {
+      const { code } = data;
+
+      await db.collection("access_codes").doc(code).update({
+        active: false,
+      });
+
+      return json(res, 200, {
+        success: true,
+        message: "Code disabled",
+      });
+    }
+
+    // ============================================================
+    // LIST CODES
+    // ============================================================
+    if (action === "listCodes") {
+      const snapshot = await db.collection("access_codes").get();
+
+      const codes = [];
+
+      snapshot.forEach((doc) => {
+        codes.push(doc.data());
+      });
+
+      return json(res, 200, codes);
+    }
+
+    // ============================================================
+    // LIST USERS
+    // ============================================================
+    if (action === "listUsers") {
+      const snapshot = await db.collection("users").get();
+
+      const users = [];
+
+      snapshot.forEach((doc) => {
+        users.push({
+          uid: doc.id,
+          ...doc.data(),
+        });
+      });
+
+      return json(res, 200, users);
+    }
+
+    // ============================================================
+    // BLOCK USER
+    // ============================================================
+    if (action === "blockUser") {
+      const { uid } = data;
+
+      await db.collection("users").doc(uid).update({
+        blocked: true,
+      });
+
+      return json(res, 200, {
+        success: true,
+        message: "User blocked",
+      });
+    }
+
+    // ============================================================
+    // UNBLOCK USER
+    // ============================================================
+    if (action === "unblockUser") {
+      const { uid } = data;
+
+      await db.collection("users").doc(uid).update({
+        blocked: false,
+      });
+
+      return json(res, 200, {
+        success: true,
+        message: "User unblocked",
+      });
+    }
+
+    // ============================================================
+    // CHANGE PASSWORD
+    // ============================================================
+    if (action === "changePassword") {
+      const { newPassword } = data;
+
+      await db.collection("admin").doc("config").set({
+        password: newPassword,
+      });
+
+      return json(res, 200, {
+        success: true,
+        message: "Password updated",
+      });
+    }
+
+    return json(res, 400, {
+      error: "Unknown action",
+    });
+  } catch (err) {
+    console.error(err);
+
+    return json(res, 500, {
+      error: err.message,
+    });
+  }
+                   }
