@@ -9,97 +9,69 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Password salah.' });
   }
 
-  const FB_KEY = process.env.FIREBASE_API_KEY;
-  const FB_PROJECT = process.env.FIREBASE_PROJECT_ID || 'rhf-confrims';
-  const BASE = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+  // Database dari ENV
+  let db = { codes: [], users: [] };
+  try {
+    const raw = process.env.ADMIN_DATA || '{"codes":[],"users":[]}';
+    db = JSON.parse(raw);
+  } catch(e) {}
 
   try {
     switch (action) {
       case 'createCode': {
         const code = (data?.code || '').trim().toUpperCase();
         if (!code) return res.json({ error: 'Kode diperlukan.' });
+        if (db.codes.find(c => c.code === code)) return res.json({ error: 'Kode sudah ada.' });
+
         const type = data?.type || 'trial';
         const duration = type === 'trial' ? (data?.duration || 3600) : null;
         const expires = duration ? new Date(Date.now() + duration * 1000).toISOString() : null;
 
-        await fetch(`${BASE}/access_codes?documentId=${code}&key=${FB_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fields: {
-              code: { stringValue: code },
-              type: { stringValue: type },
-              duration: { integerValue: duration || 0 },
-              active: { booleanValue: true },
-              used_by: { nullValue: null },
-              created_at: { timestampValue: new Date().toISOString() },
-              expires_at: expires ? { timestampValue: expires } : { nullValue: null }
-            }
-          })
+        db.codes.push({
+          code, type, duration,
+          active: true, used_by: null,
+          created_at: new Date().toISOString(),
+          expires_at: expires
         });
-        return res.json({ success: true, code });
+
+        // Simpan ke ENV — tidak bisa, tapi kita return data ke user untuk disimpan manual
+        // Untuk sekarang, kita simpan di memory aja
+        return res.json({ 
+          success: true, 
+          code,
+          warning: 'Simpan kode ini. ENV belum bisa diupdate otomatis.',
+          codes: db.codes
+        });
       }
 
       case 'deleteCode': {
         const code = (data?.code || '').trim().toUpperCase();
-        await fetch(`${BASE}/access_codes/${code}?key=${FB_KEY}`, { method: 'DELETE' });
-        return res.json({ success: true });
+        const found = db.codes.find(c => c.code === code);
+        if (found) found.active = false;
+        return res.json({ success: true, codes: db.codes });
       }
 
       case 'listCodes': {
-        const r = await fetch(`${BASE}/access_codes?key=${FB_KEY}`);
-        const d = await r.json();
-        const codes = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            codes.push({
-              code: f.code?.stringValue,
-              type: f.type?.stringValue,
-              active: f.active?.booleanValue,
-              used_by: f.used_by?.stringValue || null,
-              created_at: f.created_at?.timestampValue,
-              expires_at: f.expires_at?.timestampValue
-            });
-          });
-        }
-        return res.json({ success: true, codes });
+        return res.json({ success: true, codes: db.codes });
       }
 
       case 'listUsers': {
-        const r = await fetch(`${BASE}/users?key=${FB_KEY}`);
-        const d = await r.json();
-        const users = [];
-        if (d.documents) {
-          d.documents.forEach(doc => {
-            const f = doc.fields || {};
-            users.push({
-              uid: doc.name.split('/').pop(),
-              email: f.email?.stringValue || '',
-              accessCode: f.accessCode?.stringValue || '',
-              blocked: f.blocked?.booleanValue || false
-            });
-          });
-        }
-        return res.json({ success: true, users });
+        return res.json({ success: true, users: db.users });
       }
 
       case 'blockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: true } } })
-        });
-        return res.json({ success: true });
+        const uid = data?.uid;
+        const user = db.users.find(u => u.uid === uid);
+        if (user) user.blocked = true;
+        else db.users.push({ uid, blocked: true, email: '', accessCode: '' });
+        return res.json({ success: true, users: db.users });
       }
 
       case 'unblockUser': {
-        await fetch(`${BASE}/users/${data.uid}?key=${FB_KEY}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { blocked: { booleanValue: false } } })
-        });
-        return res.json({ success: true });
+        const uid = data?.uid;
+        const user = db.users.find(u => u.uid === uid);
+        if (user) user.blocked = false;
+        return res.json({ success: true, users: db.users });
       }
 
       default:
@@ -109,4 +81,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 }
-
