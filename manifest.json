@@ -1,14 +1,25 @@
-"icons": [
-  {
-    "src": "https://i.ibb.co.com/nNGsntbJ/file-00000000dcb871faacc90fd142cb6c22-1.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-  },
-  {
-    "src": "https://i.postimg.cc/ydC7xGcb/file-00000000dcb871faacc90fd142cb6c22-(2).png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }
-]
+{
+  "name": "RHF ZERO",
+  "short_name": "RHF ZERO",
+  "description": "Asisten AI Cerdas — 5 Mode, Vision, Memory",
+  "start_url": "/?standalone=true",
+  "display": "standalone",
+  "background_color": "#080b10",
+  "theme_color": "#080b10",
+  "orientation": "portrait",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "https://i.ibb.co.com/nNGsntbJ/file-00000000dcb871faacc90fd142cb6c22-1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.postimg.cc/ydC7xGcb/file-00000000dcb871faacc90fd142cb6c22-(2).png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
