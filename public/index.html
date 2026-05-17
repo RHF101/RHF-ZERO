@@ -900,11 +900,12 @@ function appendMessage(role, text, imgSrc, format) {
 
   let actions = '';
 if (role === 'ai' && text) {
-  const ext = extFromFormat ? extFromFormat(format) : (format || 'txt');
+  const safeText = encodeURIComponent(text);
+  const ext = (format === 'html' || format === 'js' || format === 'py' || format === 'php' || format === 'css') ? format : 'txt';
   actions = `
     <div class="msg-actions">
-      <button class="act-btn" onclick="copyText(this, \`${escJS ? escJS(text) : text.replace(/`/g,'\\`')}\`)">⧉ SALIN</button>
-      <button class="act-btn" onclick="downloadText(\`${escJS ? escJS(text) : text.replace(/`/g,'\\`')}\`, '${ext}')">⬇ DOWNLOAD .${ext.toUpperCase()}</button>
+      <button class="act-btn" onclick="copyText(this)" data-code="${safeText}">⧉ SALIN</button>
+      <button class="act-btn" onclick="downloadText(this)" data-code="${safeText}" data-ext="${ext}">⬇ DOWNLOAD .${ext.toUpperCase()}</button>
     </div>`;
 }
 
