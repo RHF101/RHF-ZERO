@@ -552,11 +552,28 @@ async function copyCode(btn) {
 
 async function downloadCode(btn) {
   const code = decodeURIComponent(btn.getAttribute('data-code'));
-  const blob = new Blob([code], {type:'text/plain'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = lastFilename; a.click();
-  btn.textContent = '✅'; setTimeout(() => btn.textContent = '📥 Download', 1500);
-}
+  const format = btn.getAttribute('data-format') || 'txt';
+  
+  // Ambil kata kunci dari pesan user terakhir
+  let keyword = 'kode';
+  const lastUserMsg = document.querySelector('.message.user:last-child .bubble');
+  if (lastUserMsg) {
+    const text = lastUserMsg.textContent || '';
+    const cleanText = text.replace(/buatkan|buat|bikinin|tolong|coding|file|html|css|js|python|php/gi, '');
+    keyword = cleanText.trim().substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_') || 'kode';
+  }
 
+  const filename = keyword + '.' + format;
+  const mimeTypes = { html: 'text/html', js: 'text/javascript', py: 'text/x-python', php: 'text/php', css: 'text/css', txt: 'text/plain' };
+  const blob = new Blob([code], { type: mimeTypes[format] || 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  
+  btn.textContent = '✅'; 
+  setTimeout(() => btn.textContent = '📥 Download', 1500);
+}
 function handleFileUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
