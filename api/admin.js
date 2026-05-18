@@ -1,174 +1,65 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: "rhf-confrims",
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-const db = getFirestore();
-
-function json(res, status, data) {
-  res.status(status).json(data);
-}
-
+// api/admin.js - DATABASE ENV VERCEL
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return json(res, 405, { error: "Method not allowed" });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { action, password, data } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(403).json({ error: 'Password salah' });
+  }
+
+  // Ambil database dari ENV
+  let db;
+  try {
+    db = JSON.parse(process.env.ADMIN_DATA || '{"codes":[],"users":[]}');
+  } catch(e) {
+    db = { codes: [], users: [] };
   }
 
   try {
-    const { action, password, data } = req.body;
-
-    if (password !== ADMIN_PASSWORD) {
-      return json(res, 401, { error: "Invalid password" });
-    }
-
-    // ============================================================
-    // CREATE CODE
-    // ============================================================
-    if (action === "createCode") {
-      const { code, type, duration } = data;
-
-      if (!code || !type || !duration) {
-        return json(res, 400, {
-          error: "Missing fields",
-        });
-      }
-
-      const now = Date.now();
-
-      const expiresAt =
-        type === "trial" ? now + Number(duration) * 1000 : null;
-
-      await db.collection("access_codes").doc(code).set({
-        code,
-        type,
-        duration,
-        active: true,
-        used_by: "",
-        created_at: now,
-        expires_at: expiresAt,
-      });
-
-      return json(res, 200, {
-        success: true,
-        message: "Code created",
+    if (action === 'createCode') {
+      const code = data.code.trim().toUpperCase();
+      if (!code) return res.json({ error: 'Kode kosong' });
+      if (db.codes.find(c => c.code === code)) return res.json({ error: 'Kode sudah ada' });
+      
+      db.codes.push({
+        code, type: data.type || 'trial',
+        active: true, used_by: null,
+        created_at: new Date().toISOString(),
+        expires_at: data.type === 'trial' ? new Date(Date.now() + (data.duration || 3600) * 1000).toISOString() : null
       });
     }
 
-    // ============================================================
-    // DELETE CODE
-    // ============================================================
-    if (action === "deleteCode") {
-      const { code } = data;
-
-      await db.collection("access_codes").doc(code).update({
-        active: false,
-      });
-
-      return json(res, 200, {
-        success: true,
-        message: "Code disabled",
-      });
+    else if (action === 'deleteCode') {
+      const code = data.code.trim().toUpperCase();
+      const found = db.codes.find(c => c.code === code);
+      if (found) found.active = false;
     }
 
-    // ============================================================
-    // LIST CODES
-    // ============================================================
-    if (action === "listCodes") {
-      const snapshot = await db.collection("access_codes").get();
-
-      const codes = [];
-
-      snapshot.forEach((doc) => {
-        codes.push(doc.data());
-      });
-
-      return json(res, 200, codes);
+    else if (action === 'listCodes') {
+      return res.json(db.codes);
     }
 
-    // ============================================================
-    // LIST USERS
-    // ============================================================
-    if (action === "listUsers") {
-      const snapshot = await db.collection("users").get();
-
-      const users = [];
-
-      snapshot.forEach((doc) => {
-        users.push({
-          uid: doc.id,
-          ...doc.data(),
-        });
-      });
-
-      return json(res, 200, users);
+    else if (action === 'blockUser') {
+      const user = db.users.find(u => u.uid === data.uid);
+      if (user) user.blocked = true;
+      else db.users.push({ uid: data.uid, blocked: true });
     }
 
-    // ============================================================
-    // BLOCK USER
-    // ============================================================
-    if (action === "blockUser") {
-      const { uid } = data;
-
-      await db.collection("users").doc(uid).update({
-        blocked: true,
-      });
-
-      return json(res, 200, {
-        success: true,
-        message: "User blocked",
-      });
+    else if (action === 'unblockUser') {
+      const user = db.users.find(u => u.uid === data.uid);
+      if (user) user.blocked = false;
     }
 
-    // ============================================================
-    // UNBLOCK USER
-    // ============================================================
-    if (action === "unblockUser") {
-      const { uid } = data;
-
-      await db.collection("users").doc(uid).update({
-        blocked: false,
-      });
-
-      return json(res, 200, {
-        success: true,
-        message: "User unblocked",
-      });
+    else if (action === 'listUsers') {
+      return res.json(db.users);
     }
 
-    // ============================================================
-    // CHANGE PASSWORD
-    // ============================================================
-    if (action === "changePassword") {
-      const { newPassword } = data;
-
-      await db.collection("admin").doc("config").set({
-        password: newPassword,
-      });
-
-      return json(res, 200, {
-        success: true,
-        message: "Password updated",
-      });
-    }
-
-    return json(res, 400, {
-      error: "Unknown action",
-    });
-  } catch (err) {
-    console.error(err);
-
-    return json(res, 500, {
-      error: err.message,
-    });
+    // Simpan ke ENV (via response, karena gak bisa update ENV langsung)
+    return res.json({ success: true, data: db });
+    
+  } catch(e) {
+    return res.status(500).json({ error: e.message });
   }
-                   }
+}
