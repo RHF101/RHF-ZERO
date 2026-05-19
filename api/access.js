@@ -1,45 +1,59 @@
+// ============================================================
+// RHF ZERO — api/access.js
+// Validasi kode akses dari Firestore
+// ============================================================
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { code } = req.body;
   if (!code) return res.status(400).json({ valid: false, error: 'Kode diperlukan' });
 
+  const cleanCode = code.trim().toUpperCase();
+
   try {
-    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
-    const { getFirestore } = await import('firebase-admin/firestore');
+    // Ambil data dari Firestore via REST API
+    const FB_KEY = process.env.FIREBASE_API_KEY;
+    const FB_PROJECT = process.env.FIREBASE_PROJECT_ID || 'rhf-confrims';
+    const url = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/access_codes/${cleanCode}?key=${FB_KEY}`;
 
-    if (getApps().length === 0) {
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID || 'rhf-confrims',
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-      });
-    }
+    const response = await fetch(url);
+    const data = await response.json();
 
-    const db = getFirestore();
-    const doc = await db.collection('access_codes').doc(code.trim().toUpperCase()).get();
-
-    if (!doc.exists) {
+    // Kalau dokumen tidak ditemukan
+    if (data.error && data.error.code === 404) {
       return res.json({ valid: false, error: 'Kode tidak ditemukan.' });
     }
 
-    const data = doc.data();
-    if (!data.active) {
+    if (!data.fields) {
+      return res.json({ valid: false, error: 'Kode tidak valid.' });
+    }
+
+    const fields = data.fields;
+
+    // Cek apakah kode aktif
+    const active = fields.active?.booleanValue;
+    if (active === false) {
       return res.json({ valid: false, error: 'Kode dinonaktifkan.' });
     }
 
-    if (data.expires_at) {
-      const now = new Date();
-      const expires = data.expires_at.toDate();
-      if (now > expires) {
-        return res.json({ valid: false, error: 'Kode kadaluarsa.' });
+    // Cek kadaluarsa (kalau trial)
+    if (fields.expires_at?.timestampValue) {
+      const expiresAt = new Date(fields.expires_at.timestampValue);
+      if (new Date() > expiresAt) {
+        return res.json({ valid: false, error: 'Kode sudah kadaluarsa.' });
       }
     }
 
-    return res.json({ valid: true, type: data.type });
+    // Kode valid
+    return res.json({
+      valid: true,
+      type: fields.type?.stringValue || 'trial',
+      expires_at: fields.expires_at?.timestampValue || null
+    });
+
   } catch (error) {
-    return res.status(500).json({ valid: false, error: error.message });
+    console.error('Access Error:', error.message);
+    return res.status(500).json({ valid: false, error: 'Gagal memvalidasi kode.' });
   }
 }
