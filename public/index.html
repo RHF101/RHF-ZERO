@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>RHF ZERO</title>
+  <link rel="icon" href="/icon-192.png"/>
+  <link rel="apple-touch-icon" href="/icon-512.png"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#050810"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<style>
+:root {
+  --bg:      #050810;
+  --bg2:     #080d16;
+  --bg3:     #0c1220;
+  --bg4:     #111928;
+  --border:  #1a2840;
+  --border2: #22354f;
+  --gold:    #c8a84b;
+  --gold2:   #e4c96a;
+  --gold3:   #f5dfa0;
+  --blue:    #1a8fff;
+  --blue2:   #45baff;
+  --cyan:    #00e5ff;
+  --red:     #ff3860;
+  --green:   #00e676;
+  --purple:  #7c4dff;
+  --text:    #c8d8e8;
+  --muted:   #4a6880;
+  --muted2:  #6a8aa0;
+  --sidebar: 270px;
+  --r:       10px;
+  --r2:      6px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════════════════════
+   SCROLLBAR GLOBAL
+═══════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ═══════════════════════════════════
+   LAYAR KODE AKSES
+═══════════════════════════════════ */
+#access-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  background: var(--bg);
+  flex-direction: column;
+  gap: 28px;
+  position: relative;
+  overflow: hidden;
+}
+#access-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 40%, rgba(201,168,76,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 70% 60%, rgba(26,143,255,.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+.access-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: .3em;
+  background: linear-gradient(135deg, var(--gold), var(--blue2), var(--gold3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 30px rgba(201,168,76,.3));
+  animation: logoGlow 3s ease-in-out infinite alternate;
+}
+@keyframes logoGlow {
+  from { filter: drop-shadow(0 0 20px rgba(201,168,76,.25)); }
+  to   { filter: drop-shadow(0 0 40px rgba(201,168,76,.5)) drop-shadow(0 0 80px rgba(26,143,255,.2)); }
+}
+.access-sub {
+  font-size: 10px;
+  letter-spacing: .4em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: -20px;
+}
+.access-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 0 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+  position: relative;
+}
+.access-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.access-label {
+  font-size: 9px;
+  letter-spacing: .3em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+#access-input {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--gold2);
+  padding: 13px 20px;
+  font-size: 20px;
+  text-align: center;
+  letter-spacing: .35em;
+  border-radius: var(--r);
+  width: 220px;
+  text-transform: uppercase;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+#access-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,.1); }
+.btn-access {
+  padding: 13px 32px;
+  background: linear-gradient(135deg, var(--gold), #a88030);
+  color: #0a0a0a;
+  border: none;
+  border-radius: var(--r);
+  font-weight: 700;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  letter-spacing: .15em;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 20px rgba(201,168,76,.25);
+}
+.btn-access:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,.4); }
+.btn-access:active { transform: translateY(0); }
+#access-status { font-size: 11px; color: var(--red); min-height: 18px; letter-spacing: .05em; }
+
+/* ═══════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════ */
+#auth-screen {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  background: var(--bg);
+  flex-direction: column;
+  gap: 32px;
+  position: relative;
+  overflow: hidden;
+}
+#auth-screen::before { content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201,168,76,.05) 0%, transparent 70%); pointer-events: none; }
+.auth-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 52px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  box-shadow: 0 0 80px rgba(0,0,0,.7);
+  position: relative;
+}
+.auth-card::before { content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.auth-logo { font-family: 'Orbitron', sans-serif; font-size: 2.8rem; font-weight: 900; letter-spacing: .3em;
+  background: linear-gradient(135deg, var(--gold), var(--blue2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.auth-desc { font-size: 11px; color: var(--muted); letter-spacing: .08em; line-height: 1.8; max-width: 260px; }
+.btn-google {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 28px;
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: var(--r);
+  color: var(--gold2);
+  letter-spacing: .12em;
+  font-size: 12px;
+  font-family: 'Orbitron', sans-serif;
+  cursor: pointer;
+  transition: all .25s;
+  box-shadow: 0 0 20px rgba(201,168,76,.08);
+}
+.btn-google:hover { background: rgba(201,168,76,.08); box-shadow: 0 0 30px rgba(201,168,76,.2); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════
+   APP SHELL
+═══════════════════════════════════ */
+#app { display: none; flex: 1; overflow: hidden; }
+#app.visible { display: flex; }
+
+/* ═══════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════ */
+#sidebar {
+  width: var(--sidebar);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+}
+.sidebar-header {
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.logo-small {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  background: linear-gradient(90deg, var(--gold2), var(--blue2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.logo-dot { color: var(--gold); }
+.btn-logout {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer; font-size: 13px; padding: 5px 8px; border-radius: var(--r2);
+  transition: all .2s;
+}
+.btn-logout:hover { color: var(--red); border-color: var(--red); }
+
+.user-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; }
+.user-info { flex: 1; overflow: hidden; }
+.user-name { font-size: 10px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-status { font-size: 9px; color: var(--green); letter-spacing: .08em; margin-top: 1px; }
+
+.btn-new-chat {
+  margin: 10px;
+  padding: 10px 12px;
+  background: rgba(201,168,76,.05);
+  border: 1px dashed rgba(201,168,76,.25);
+  border-radius: var(--r);
+  color: var(--gold2);
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: .1em;
+  font-size: 11px;
+  font-family: 'Orbitron', sans-serif;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.btn-new-chat:hover { background: rgba(201,168,76,.12); border-style: solid; border-color: rgba(201,168,76,.5); }
+
+.sidebar-history { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+.hist-section-label {
+  padding: 10px 14px 4px;
+  font-size: 8px;
+  letter-spacing: .2em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.hist-item {
+  padding: 8px 14px 8px 14px;
+  font-size: 11px;
+  color: var(--muted2);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.hist-item:hover { color: var(--text); background: rgba(255,255,255,.025); border-left-color: var(--border2); }
+.hist-item.active { color: var(--gold2); border-left-color: var(--gold); background: rgba(201,168,76,.05); }
+.hist-mode-icon { font-size: 10px; flex-shrink: 0; opacity: .6; }
+.hist-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-item-del {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: opacity .15s, background .15s;
+  flex-shrink: 0;
+}
+.hist-item:hover .hist-item-del { opacity: 1; }
+.hist-item-del:hover { background: rgba(255,56,96,.15); }
+
+.hist-empty { padding: 20px 14px; font-size: 11px; color: var(--muted); text-align: center; line-height: 2; }
+.hist-loading { padding: 14px; font-size: 10px; color: var(--muted); text-align: center; animation: blink 1.4s ease infinite; }
+@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* Stat bar di bawah sidebar */
+.sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.stat-pill {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 5px 8px;
+  text-align: center;
+}
+.stat-pill .val { font-size: 12px; font-weight: 600; color: var(--gold2); }
+.stat-pill .lbl { font-size: 8px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-top: 1px; }
+
+/* ═══════════════════════════════════
+   MAIN AREA
+═══════════════════════════════════ */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ── TOPBAR ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,13,22,.9);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+.modes { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.modes::-webkit-scrollbar { display: none; }
+.mode-btn {
+  padding: 7px 14px;
+  border-radius: var(--r2);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  transition: all .2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.mode-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.mode-btn.active {
+  color: var(--gold2);
+  background: rgba(201,168,76,.08);
+  border-color: rgba(201,168,76,.3);
+  box-shadow: 0 0 12px rgba(201,168,76,.08);
+}
+.mode-btn.mode-3d.active { color: var(--cyan); background: rgba(0,229,255,.06); border-color: rgba(0,229,255,.25); }
+.mode-btn.mode-serius.active { color: var(--blue2); background: rgba(26,143,255,.06); border-color: rgba(26,143,255,.25); }
+.mode-btn.mode-detektif.active { color: var(--purple); background: rgba(124,77,255,.06); border-color: rgba(124,77,255,.25); }
+.mode-btn.mode-godot.active { color: #7ec8e3; background: rgba(126,200,227,.06); border-color: rgba(126,200,227,.3); }
+.mode-btn.mode-unity.active { color: #b8d4f0; background: rgba(184,212,240,.06); border-color: rgba(184,212,240,.3); }
+.mode-btn.mode-roblox.active { color: #ff6b6b; background: rgba(255,107,107,.06); border-color: rgba(255,107,107,.3); }
+.mode-btn.mode-unreal.active { color: #a8d8a8; background: rgba(168,216,168,.06); border-color: rgba(168,216,168,.3); }
+
+/* ═══════════════════════════════════
+   MULTI-FILE PANEL (generate.js)
+═══════════════════════════════════ */
+#multifile-panel {
+  display: none;
+  flex-shrink: 0;
+  border-top: 2px solid rgba(201,168,76,.2);
+  background: var(--bg2);
+  max-height: 320px;
+  overflow: hidden;
+  flex-direction: column;
+}
+#multifile-panel.visible { display: flex; }
+#multifile-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: rgba(5,8,16,.9);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.multifile-label { font-size: 9px; letter-spacing: .2em; color: var(--gold2); font-family: 'Orbitron', sans-serif; flex: 1; }
+.multifile-engine-badge {
+  font-size: 8px; padding: 2px 8px; border-radius: 3px;
+  border: 1px solid; letter-spacing: .1em;
+}
+.btn-multifile-close {
+  background: rgba(255,56,96,.08); border: 1px solid rgba(255,56,96,.25);
+  color: var(--red); cursor: pointer; font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r2); transition: all .2s;
+}
+.btn-multifile-close:hover { background: rgba(255,56,96,.18); }
+.btn-dl-all {
+  background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.3);
+  color: var(--gold2); cursor: pointer; font-size: 10px; padding: 4px 12px;
+  border-radius: var(--r2); transition: all .2s; letter-spacing: .06em;
+}
+.btn-dl-all:hover { background: rgba(201,168,76,.18); }
+
+#multifile-list {
+  overflow-y: auto; flex: 1; padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.mf-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r2); cursor: pointer;
+  transition: all .15s;
+}
+.mf-item:hover { border-color: var(--gold); background: rgba(201,168,76,.04); }
+.mf-icon { font-size: 14px; flex-shrink: 0; }
+.mf-info { flex: 1; overflow: hidden; }
+.mf-name { font-size: 11px; color: var(--gold2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-meta { font-size: 9px; color: var(--muted); margin-top: 2px; letter-spacing: .05em; }
+.mf-dl-btn {
+  background: rgba(201,168,76,.06); border: 1px solid rgba(201,168,76,.25);
+  color: var(--gold); cursor: pointer; font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r2); transition: all .15s; flex-shrink: 0;
+  white-space: nowrap;
+}
+.mf-dl-btn:hover { background: rgba(201,168,76,.16); border-color: var(--gold2); }
+.mf-view-btn {
+  background: rgba(26,143,255,.06); border: 1px solid rgba(26,143,255,.25);
+  color: var(--blue2); cursor: pointer; font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r2); transition: all .15s; flex-shrink: 0;
+}
+.mf-view-btn:hover { background: rgba(26,143,255,.14); }
+
+/* input hint warna per engine */
+.input-mode-hint.mode-godot  { color: #7ec8e3; }
+.input-mode-hint.mode-unity  { color: #b8d4f0; }
+.input-mode-hint.mode-roblox { color: #ff6b6b; }
+.input-mode-hint.mode-unreal { color: #a8d8a8; }
+
+/* Code viewer modal */
+#code-viewer-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.85); backdrop-filter: blur(4px);
+  z-index: 2000; align-items: center; justify-content: center;
+}
+#code-viewer-modal.show { display: flex; }
+.cv-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; width: min(90vw, 780px); max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 0 80px rgba(0,0,0,.9);
+}
+.cv-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cv-filename { font-size: 12px; color: var(--gold2); flex: 1; font-family: 'Orbitron', sans-serif; }
+.cv-dl { background: rgba(201,168,76,.1); border: 1px solid var(--gold); color: var(--gold2); cursor: pointer; font-size: 10px; padding: 5px 12px; border-radius: var(--r2); transition: all .2s; }
+.cv-dl:hover { background: rgba(201,168,76,.2); }
+.cv-close { background: rgba(255,56,96,.08); border: 1px solid rgba(255,56,96,.3); color: var(--red); cursor: pointer; font-size: 11px; padding: 5px 10px; border-radius: var(--r2); }
+.cv-body { flex: 1; overflow: auto; padding: 16px; }
+.cv-body pre { font-size: 12px; line-height: 1.7; color: var(--text); white-space: pre-wrap; word-break: break-word; font-family: 'JetBrains Mono', monospace; }
+
+.topbar-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.topbar-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer; font-size: 13px; padding: 6px 9px; border-radius: var(--r2); transition: all .2s;
+}
+.topbar-btn:hover { color: var(--text); border-color: var(--border2); }
+
+/* ── STATUS BAR ── */
+#status-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 14px; border-bottom: 1px solid var(--border);
+  background: rgba(5,8,16,.8); flex-shrink: 0;
+  font-size: 9px; color: var(--muted); letter-spacing: .1em; min-height: 26px;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease infinite; flex-shrink: 0; }
+.status-dot.busy { background: var(--gold); animation: pulse .8s ease infinite; }
+.status-dot.error { background: var(--red); animation: none; }
+@keyframes pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+#status-text { flex: 1; }
+.status-mode-tag {
+  padding: 2px 8px; border-radius: 3px; font-size: 8px; letter-spacing: .12em;
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════
+   CHAT AREA
+═══════════════════════════════════ */
+#chat-area {
+  flex: 1; overflow-y: auto; padding: 20px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  scroll-behavior: smooth;
+}
+
+/* Pesan user */
+.msg { max-width: 860px; width: 100%; animation: fadeUp .2s ease; }
+.msg.user { align-self: flex-end; }
+.msg.ai { align-self: flex-start; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.msg-role { font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+.msg.user .msg-role { color: var(--gold); }
+.msg.ai .msg-role { color: var(--blue2); }
+.msg-time { font-size: 8px; color: var(--muted); }
+
+.msg-bubble {
+  padding: 13px 16px;
+  border-radius: var(--r);
+  line-height: 1.75;
+  word-break: break-word;
+  position: relative;
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, rgba(201,168,76,.07), rgba(201,168,76,.03));
+  border: 1px solid rgba(201,168,76,.2);
+  color: var(--gold3);
+  max-width: 520px;
+  margin-left: auto;
+}
+.msg.ai .msg-bubble {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.msg.ai.mode-3d .msg-bubble { border-color: rgba(0,229,255,.2); }
+.msg.ai.mode-serius .msg-bubble { border-color: rgba(26,143,255,.2); }
+
+/* Typing indicator */
+.typing-dots { display: flex; gap: 4px; align-items: center; padding: 6px 0; }
+.typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--blue2); animation: bounce .8s ease infinite; }
+.typing-dots span:nth-child(2) { animation-delay: .15s; }
+.typing-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,80%,100%{transform:scale(.8);opacity:.5} 40%{transform:scale(1.2);opacity:1} }
+
+/* Code blocks dalam AI message */
+.msg-bubble pre {
+  background: rgba(0,0,0,.5);
+  border: 1px solid var(--border2);
+  border-radius: var(--r2);
+  padding: 12px;
+  overflow-x: auto;
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.msg-bubble code { font-family: 'JetBrains Mono', monospace; }
+.msg-bubble p { margin-bottom: 8px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+
+/* Action buttons */
+.msg-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.act-btn {
+  padding: 4px 10px;
+  border-radius: var(--r2);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .05em;
+  transition: all .15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.act-btn:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,.03); }
+.act-btn.primary { border-color: rgba(0,229,255,.35); color: var(--cyan); }
+.act-btn.primary:hover { background: rgba(0,229,255,.06); }
+
+/* Welcome screen */
+.welcome-screen {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  padding: 40px 20px; text-align: center;
+}
+.welcome-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: .25em;
+  background: linear-gradient(135deg, var(--gold), var(--blue2), var(--gold3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(201,168,76,.2));
+}
+.welcome-sub { font-size: 11px; color: var(--muted); letter-spacing: .15em; }
+.welcome-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 480px; }
+.welcome-chip {
+  padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--muted2); font-size: 11px; cursor: pointer;
+  transition: all .2s; text-align: left;
+}
+.welcome-chip:hover { border-color: var(--gold); color: var(--gold2); background: rgba(201,168,76,.05); }
+
+/* ═══════════════════════════════════
+   3D VIEWER
+═══════════════════════════════════ */
+#viewer-3d-wrap {
+  display: none;
+  flex-shrink: 0;
+  border-top: 2px solid rgba(0,229,255,.25);
+  position: relative;
+  background: #000;
+}
+#viewer-3d-wrap.visible { display: block; }
+#viewer-3d-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: rgba(0,10,20,.95);
+  border-bottom: 1px solid rgba(0,229,255,.15);
+}
+.viewer-3d-label {
+  font-size: 9px; letter-spacing: .2em; color: var(--cyan);
+  font-family: 'Orbitron', sans-serif;
+  flex: 1;
+}
+.viewer-indicator { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); animation: pulse 1.5s ease infinite; }
+.btn-viewer-close {
+  background: rgba(255,56,96,.08); border: 1px solid rgba(255,56,96,.25);
+  color: var(--red); cursor: pointer; font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r2); transition: all .2s;
+}
+.btn-viewer-close:hover { background: rgba(255,56,96,.18); }
+.btn-viewer-popout {
+  background: rgba(0,229,255,.06); border: 1px solid rgba(0,229,255,.25);
+  color: var(--cyan); cursor: pointer; font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r2); transition: all .2s;
+}
+.btn-viewer-popout:hover { background: rgba(0,229,255,.15); }
+
+#viewer-3d {
+  width: 100%; height: 420px;
+  border: none; display: block;
+  background: #000;
+}
+
+/* Viewer expand */
+#viewer-3d-wrap.expanded #viewer-3d { height: 520px; }
+
+/* ═══════════════════════════════════
+   IMAGE PREVIEW
+═══════════════════════════════════ */
+#img-preview-bar {
+  display: none;
+  padding: 7px 14px;
+  background: rgba(201,168,76,.04);
+  border-top: 1px solid rgba(201,168,76,.15);
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#img-preview-bar.visible { display: flex; }
+#img-preview-thumb {
+  width: 36px; height: 36px; object-fit: cover;
+  border-radius: 6px; border: 1px solid var(--gold);
+}
+.img-preview-label { font-size: 10px; color: var(--muted); flex: 1; }
+.img-clear-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 15px; padding: 2px 6px; }
+
+/* ═══════════════════════════════════
+   INPUT AREA
+═══════════════════════════════════ */
+#input-area {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
+  background: rgba(8,13,22,.95);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+.input-mode-hint {
+  font-size: 9px; color: var(--muted); letter-spacing: .1em;
+  margin-bottom: 6px; padding-left: 2px;
+  min-height: 14px;
+}
+.input-mode-hint.mode-3d { color: var(--cyan); }
+.input-mode-hint.mode-serius { color: var(--blue2); }
+.input-mode-hint.mode-detektif { color: var(--purple); }
+
+.input-row { display: flex; gap: 7px; align-items: flex-end; }
+#msg-input {
+  flex: 1;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 13px;
+  resize: none;
+  min-height: 44px;
+  max-height: 160px;
+  outline: none;
+  line-height: 1.55;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color .2s, box-shadow .2s;
+}
+#msg-input:focus { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(26,143,255,.08); }
+#msg-input.mode-3d:focus { box-shadow: 0 0 0 3px rgba(0,229,255,.06); }
+#msg-input::placeholder { color: var(--muted); }
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: var(--r); border: 1px solid var(--border);
+  background: var(--bg4); color: var(--muted); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--border2); color: var(--text); }
+
+.send-btn { background: rgba(201,168,76,.08); border-color: rgba(201,168,76,.3); color: var(--gold2); }
+.send-btn:hover { background: rgba(201,168,76,.18); border-color: var(--gold); color: var(--gold3); box-shadow: 0 0 16px rgba(201,168,76,.2); }
+.send-btn.mode-3d { background: rgba(0,229,255,.06); border-color: rgba(0,229,255,.3); color: var(--cyan); }
+.send-btn.mode-3d:hover { background: rgba(0,229,255,.15); border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,.2); }
+
+/* Loading send btn */
+.send-btn.loading { opacity: .5; cursor: not-allowed; }
+
+/* ═══════════════════════════════════
+   TOAST NOTIF
+═══════════════════════════════════ */
+#toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 10px 20px;
+  font-size: 11px; color: var(--text); letter-spacing: .05em;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+  z-index: 9999; white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5);
+}
+#toast.show { opacity: 1; }
+#toast.success { border-color: rgba(0,230,118,.3); color: var(--green); }
+#toast.error { border-color: rgba(255,56,96,.3); color: var(--red); }
+
+/* ═══════════════════════════════════
+   MODAL DOWNLOAD
+═══════════════════════════════════ */
+#download-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+#download-modal.show { display: flex; }
+.modal-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px; max-width: 380px; width: 90%;
+  box-shadow: 0 0 60px rgba(0,0,0,.8);
+}
+.modal-title { font-family: 'Orbitron', sans-serif; font-size: 13px; color: var(--gold2); letter-spacing: .15em; margin-bottom: 16px; }
+.modal-info { font-size: 11px; color: var(--muted); margin-bottom: 20px; line-height: 1.8; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 11px; border-radius: var(--r); font-size: 11px;
+  cursor: pointer; border: 1px solid; letter-spacing: .08em; transition: all .2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.modal-btn.primary { background: rgba(201,168,76,.1); border-color: var(--gold); color: var(--gold2); }
+.modal-btn.primary:hover { background: rgba(201,168,76,.2); }
+.modal-btn.secondary { background: transparent; border-color: var(--border); color: var(--muted); }
+.modal-btn.secondary:hover { color: var(--text); }
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media (max-width: 680px) {
+  #sidebar { display: none; }
+  #viewer-3d { height: 300px; }
+}
+@media (max-width: 400px) {
+  .mode-btn { padding: 6px 9px; font-size: 9px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LAYAR KODE AKSES ── -->
+<div id="access-screen">
+  <div class="access-logo">RHF ZERO</div>
+  <div class="access-sub">RADIT HIGH-END FUTURE · AI SYSTEM</div>
+  <div class="access-box">
+    <div class="access-label">🔐 Masukkan Kode Akses</div>
+    <input id="access-input" type="text" placeholder="· · · ·" autocomplete="off" maxlength="12"
+           onkeydown="if(event.key==='Enter')verifyAccess()"/>
+    <button class="btn-access" onclick="verifyAccess()">⬡ VERIFIKASI</button>
+    <div id="access-status"></div>
+  </div>
+</div>
+
+<!-- ── LAYAR LOGIN ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">RHF·ZERO</div>
+    <div class="auth-desc">AI Personal dengan kemampuan 3D visual, coding, dan analisis gambar.</div>
+    <button class="btn-google" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path fill="#4285F4" d="M17.64 9.2a10.34 10.34 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92A8.78 8.78 0 0 0 17.64 9.2z"/>
+        <path fill="#34A853" d="M9 18a8.59 8.59 0 0 0 5.96-2.18l-2.92-2.26A5.43 5.43 0 0 1 9 14.5a5.44 5.44 0 0 1-5.11-3.76H.87v2.33A9 9 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.89 10.74A5.46 5.46 0 0 1 3.6 9c0-.6.1-1.18.29-1.74V4.93H.87A9 9 0 0 0 0 9c0 1.45.35 2.82.87 4.07l3.02-2.33z"/>
+        <path fill="#EA4335" d="M9 3.5a4.87 4.87 0 0 1 3.44 1.35l2.58-2.58A8.67 8.67 0 0 0 9 0 9 9 0 0 0 .87 4.93L3.89 7.26A5.44 5.44 0 0 1 9 3.5z"/>
+      </svg>
+      MASUK DENGAN GOOGLE
+    </button>
+  </div>
+</div>
+
+<!-- ── APP SHELL ── -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo-small">RHF·ZERO</span>
+      <button class="btn-logout" onclick="signOut()" title="Keluar">⏻</button>
+    </div>
+    <div class="user-chip">
+      <img id="user-avatar" class="avatar" src="" alt=""/>
+      <div class="user-info">
+        <div id="user-name" class="user-name">—</div>
+        <div class="user-status">● ONLINE</div>
+      </div>
+    </div>
+    <button class="btn-new-chat" onclick="chatBaru()">＋ CHAT BARU</button>
+    <div class="sidebar-history" id="sidebar-history">
+      <div class="hist-loading">⟳ Memuat riwayat...</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="stat-pill">
+        <div class="val" id="stat-chats">—</div>
+        <div class="lbl">Chats</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val" id="stat-mode">SANTAI</div>
+        <div class="lbl">Mode</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <div class="modes">
+        <button class="mode-btn active" data-mode="santai" onclick="setMode(this)">💬 SANTAI</button>
+        <button class="mode-btn mode-serius" data-mode="serius" onclick="setMode(this)">⚙️ SERIUS</button>
+        <button class="mode-btn mode-detektif" data-mode="detektif" onclick="setMode(this)">🔍 DETEKTIF</button>
+        <button class="mode-btn" data-mode="scraper" onclick="setMode(this)">🌐 SCRAPER</button>
+        <button class="mode-btn mode-3d" data-mode="3d" onclick="setMode(this)">🎲 3D</button>
+        <button class="mode-btn mode-godot" data-mode="godot" onclick="setMode(this)">🟦 GODOT</button>
+        <button class="mode-btn mode-unity" data-mode="unity" onclick="setMode(this)">⬜ UNITY</button>
+        <button class="mode-btn mode-roblox" data-mode="roblox" onclick="setMode(this)">🟥 ROBLOX</button>
+        <button class="mode-btn mode-unreal" data-mode="unreal" onclick="setMode(this)">🟩 UNREAL</button>
+      </div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="clearChat()" title="Bersihkan chat">🗑</button>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div id="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">AI SIAP · SEMUA PROVIDER ONLINE</span>
+      <span class="status-mode-tag" id="status-mode-tag">SANTAI</span>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div id="chat-area">
+      <!-- Welcome screen injected by JS -->
+    </div>
+
+    <!-- 3D VIEWER -->
+    <div id="viewer-3d-wrap">
+      <div id="viewer-3d-header">
+        <div class="viewer-indicator"></div>
+        <span class="viewer-3d-label">🎲 THREE.JS VIEWER — INTERACTIVE 3D SCENE</span>
+        <button class="btn-viewer-popout" onclick="popoutViewer()" title="Buka di tab baru">⬡ POPOUT</button>
+        <button class="btn-viewer-close" onclick="closeViewer()">✕ TUTUP</button>
+      </div>
+      <iframe id="viewer-3d" sandbox="allow-scripts allow-same-origin" title="3D Scene"></iframe>
+    </div>
+
+    <!-- MULTI-FILE PANEL -->
+    <div id="multifile-panel">
+      <div id="multifile-header">
+        <span class="multifile-label">📦 GENERATED FILES</span>
+        <span class="multifile-engine-badge" id="mf-engine-badge"></span>
+        <button class="btn-dl-all" onclick="downloadAllFiles()">⬇ UNDUH SEMUA</button>
+        <button class="btn-multifile-close" onclick="closeMultifilePanel()">✕ TUTUP</button>
+      </div>
+      <div id="multifile-list"></div>
+    </div>
+
+    <!-- IMAGE PREVIEW -->
+    <div id="img-preview-bar">
+      <img id="img-preview-thumb" src="" alt="preview"/>
+      <span class="img-preview-label">📎 Gambar siap dikirim (mode Detektif otomatis aktif)</span>
+      <button class="img-clear-btn" onclick="clearImage()" title="Hapus gambar">✕</button>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div id="input-area">
+      <div class="input-mode-hint" id="input-hint">💬 Mode santai — tanya apa saja</div>
+      <div class="input-row">
+        <textarea id="msg-input" placeholder="Ketik pesan..." rows="1"
+                  onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+        <button class="icon-btn" onclick="document.getElementById('img-upload').click()" title="Upload gambar">📎</button>
+        <button class="icon-btn send-btn" id="send-btn" onclick="sendMessage()" title="Kirim">➤</button>
+      </div>
+      <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none"/>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- DOWNLOAD MODAL -->
+<div id="download-modal">
+  <div class="modal-box">
+    <div class="modal-title">💾 SIMPAN FILE</div>
+    <div class="modal-info" id="download-info">Simpan kode/respons sebagai file.</div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="doDownload()">⬇ UNDUH</button>
+      <button class="modal-btn secondary" onclick="closeDownloadModal()">✕ BATAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FIREBASE ── -->
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDKlLibZlP5FlFcgPV1lM_8ykMz1RuXbvA",
+  authDomain: "rhf-zero-26ad2.firebaseapp.com",
+  projectId: "rhf-zero-26ad2",
+  storageBucket: "rhf-zero-26ad2.firebasestorage.app",
+  messagingSenderId: "864616822713",
+  appId: "1:864616822713:web:1db59149efe70de2cb6868"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+</script>
+
+<!-- ── APP LOGIC ── -->
+<script>
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+let currentUser = null;
+let currentMode = 'santai';
+let currentChatId = null;
+let pendingImage = null;
+let pendingImageBase64 = null;
+let isLoading = false;
+let chatHistory = [];
+let pendingDownload = { content: '', filename: 'rhfzero-output.txt' };
+let last3dHtml = '';
+let totalMessages = 0;
+
+const MODE_HINTS = {
+  santai:   '💬 Mode santai — tanya apa saja, jawab singkat natural',
+  serius:   '⚙️ Mode serius — output kode lengkap, tanpa penjelasan ekstra',
+  detektif: '🔍 Mode detektif — upload gambar untuk analisis visual mendalam',
+  scraper:  '🌐 Mode scraper — generate kode web scraping / data extraction',
+  '3d':     '🎲 Mode 3D — describe scene Three.js kamu! (objek, karakter, hujan, langit, dll)',
+  godot:    '🟦 Mode Godot — generate .gd, .tscn, .tres, .gdshader (Godot 4)',
+  unity:    '⬜ Mode Unity — generate C# script, shader, prefab (Unity 2022+)',
+  roblox:   '🟥 Mode Roblox — generate Lua script (LocalScript/Script/ModuleScript)',
+  unreal:   '🟩 Mode Unreal — generate C++ .h/.cpp, Blueprint (UE5)'
+};
+
+const MODE_ICONS = { santai:'💬', serius:'⚙️', detektif:'🔍', scraper:'🌐', '3d':'🎲', godot:'🟦', unity:'⬜', roblox:'🟥', unreal:'🟩' };
+
+// Engine modes yang pakai /api/generate (multi-file)
+const ENGINE_MODES = ['godot', 'unity', 'roblox', 'unreal'];
+
+// State generate
+let lastGeneratedFiles = [];
+let cvCurrentFile = null;
+
+// Map mode → ekstensi download
+const MODE_DL_EXT = {
+  godot:'gd', unity:'cs', roblox:'lua', unreal:'cpp',
+  '3d':'html', serius:'txt', scraper:'py', santai:'txt', detektif:'txt'
+};
+
+
+// ════════════════════════════════════════════════════
+// INIT — Cek kode akses
+// ════════════════════════════════════════════════════
+(function init() {
+  if (localStorage.getItem('rhf_access_valid') === 'true') {
+    document.getElementById('access-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+  }
+})();
+
+// ════════════════════════════════════════════════════
+// KODE AKSES
+// ════════════════════════════════════════════════════
+async function verifyAccess() {
+  const code = document.getElementById('access-input').value.trim().toUpperCase();
+  if (!code) { showToast('Masukkan kode akses', 'error'); return; }
+  const statusEl = document.getElementById('access-status');
+  statusEl.textContent = '⟳ Memeriksa...';
+  statusEl.style.color = 'var(--muted)';
+  try {
+    const res = await fetch('/api/access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+    if (data.valid) {
+      localStorage.setItem('rhf_access_valid', 'true');
+      localStorage.setItem('rhf_access_code', code);
+      document.getElementById('access-screen').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+    } else {
+      statusEl.textContent = '❌ ' + (data.error || 'Kode tidak valid');
+      statusEl.style.color = 'var(--red)';
+    }
+  } catch (e) {
+    statusEl.textContent = '❌ Gagal terhubung ke server';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+// ════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('user-name').textContent = user.displayName || user.email;
+    document.getElementById('user-avatar').src = user.photoURL || '';
+    loadUserHistory();
+    if (!currentChatId) {
+      showWelcomeScreen();
+    }
+  } else {
+    currentUser = null;
+    document.getElementById('app').classList.remove('visible');
+    if (localStorage.getItem('rhf_access_valid') === 'true') {
+      document.getElementById('auth-screen').style.display = 'flex';
+    } else {
+      document.getElementById('access-screen').style.display = 'flex';
+    }
+  }
+});
+
+function signIn() { auth.signInWithPopup(provider); }
+function signOut() {
+  if (confirm('Keluar dari RHF ZERO?')) auth.signOut();
+}
+const UID = () => currentUser ? currentUser.uid : 'anon';
+
+// ════════════════════════════════════════════════════
+// MEMORY API CALLS
+// ════════════════════════════════════════════════════
+async function memoryCall(action, chatId, data) {
+  const body = { action, uid: UID() };
+  if (chatId) body.chatId = chatId;
+  if (data) body.data = data;
+  const res = await fetch('/api/memory', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════
+// SIDEBAR HISTORY
+// ════════════════════════════════════════════════════
+async function loadUserHistory() {
+  const histEl = document.getElementById('sidebar-history');
+  histEl.innerHTML = '<div class="hist-loading">⟳ Memuat riwayat...</div>';
+  try {
+    const result = await memoryCall('getChats');
+    chatHistory = result.chats || [];
+    renderSidebarHistory();
+    document.getElementById('stat-chats').textContent = chatHistory.length;
+  } catch (e) {
+    histEl.innerHTML = '<div class="hist-empty" style="color:var(--red)">❌ Gagal muat riwayat</div>';
+  }
+}
+
+function renderSidebarHistory() {
+  const histEl = document.getElementById('sidebar-history');
+  if (!chatHistory || chatHistory.length === 0) {
+    histEl.innerHTML = '<div class="hist-empty">Belum ada riwayat.<br/>Mulai chat pertamamu!</div>';
+    return;
+  }
+  const now = Date.now();
+  const DAY = 86400000;
+  const groups = { today: [], yesterday: [], older: [] };
+  for (const chat of chatHistory) {
+    const age = now - (chat.updatedAt || 0);
+    if (age < DAY) groups.today.push(chat);
+    else if (age < DAY * 2) groups.yesterday.push(chat);
+    else groups.older.push(chat);
+  }
+  let html = '';
+  if (groups.today.length) {
+    html += '<div class="hist-section-label">📅 Hari Ini</div>';
+    html += groups.today.map(renderHistItem).join('');
+  }
+  if (groups.yesterday.length) {
+    html += '<div class="hist-section-label">🕐 Kemarin</div>';
+    html += groups.yesterday.map(renderHistItem).join('');
+  }
+  if (groups.older.length) {
+    html += '<div class="hist-section-label">📂 Sebelumnya</div>';
+    html += groups.older.map(renderHistItem).join('');
+  }
+  histEl.innerHTML = html;
+  updateActiveHistItem();
+}
+
+function renderHistItem(chat) {
+  const title = escHtml((chat.title || 'Chat').substring(0, 36));
+  const icon = MODE_ICONS[chat.mode] || '💬';
+  const id = chat._id;
+  return `<div class="hist-item" id="hist-${id}" onclick="bukaChat('${id}')">
+    <span class="hist-mode-icon">${icon}</span>
+    <span class="hist-item-title" title="${title}">${title}</span>
+    <button class="hist-item-del" onclick="hapusChat(event,'${id}')" title="Hapus chat">✕</button>
+  </div>`;
+}
+
+function updateActiveHistItem() {
+  document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('active'));
+  if (currentChatId) {
+    const el = document.getElementById('hist-' + currentChatId);
+    if (el) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+  }
+}
+
+// ════════════════════════════════════════════════════
+// BUKA CHAT
+// ════════════════════════════════════════════════════
+async function bukaChat(chatId) {
+  if (currentChatId === chatId) return;
+  currentChatId = chatId;
+  close3DViewer();
+  updateActiveHistItem();
+
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '<div style="padding:24px;text-align:center;font-size:10px;color:var(--muted);letter-spacing:.1em">⟳ MEMUAT PESAN...</div>';
+
+  try {
+    const result = await memoryCall('getMessages', chatId);
+    const messages = result.messages || [];
+    area.innerHTML = '';
+    if (messages.length === 0) {
+      area.innerHTML = '<div style="padding:24px;text-align:center;font-size:11px;color:var(--muted)">Belum ada pesan di chat ini.</div>';
+    } else {
+      for (const msg of messages) {
+        renderMsg(msg.role || 'user', msg.content || '', msg.format || 'txt', msg.mode || 'santai', false);
+      }
+      area.scrollTop = area.scrollHeight;
+    }
+  } catch (e) {
+    area.innerHTML = '<div style="padding:24px;text-align:center;font-size:11px;color:var(--red)">❌ Gagal memuat pesan</div>';
+  }
+}
+
+// ════════════════════════════════════════════════════
+// CHAT BARU
+// ════════════════════════════════════════════════════
+async function chatBaru() {
+  const newId = 'chat_' + Date.now();
+  currentChatId = newId;
+  close3DViewer();
+
+  // Tampilkan welcome
+  showWelcomeScreen();
+
+  // Optimistic: tambah ke sidebar
+  const newChat = { _id: newId, title: 'Chat Baru', updatedAt: Date.now(), mode: currentMode };
+  chatHistory.unshift(newChat);
+  renderSidebarHistory();
+
+  // Simpan ke Firestore
+  try {
+    await memoryCall('createChat', newId, { title: 'Chat Baru', mode: currentMode });
+    document.getElementById('stat-chats').textContent = chatHistory.length;
+  } catch (e) {
+    console.error('[chatBaru] Error:', e);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// HAPUS CHAT
+// ════════════════════════════════════════════════════
+async function hapusChat(e, chatId) {
+  e.stopPropagation();
+  if (!confirm('Hapus chat ini? Tidak bisa di-undo.')) return;
+
+  // Hapus dari state lokal dulu
+  chatHistory = chatHistory.filter(c => c._id !== chatId);
+  renderSidebarHistory();
+  document.getElementById('stat-chats').textContent = chatHistory.length;
+
+  if (currentChatId === chatId) {
+    currentChatId = null;
+    close3DViewer();
+    showWelcomeScreen();
+  }
+
+  // Hapus di Firestore
+  try {
+    await memoryCall('deleteChat', chatId);
+    showToast('Chat dihapus', 'success');
+  } catch (e) {
+    showToast('Gagal hapus chat', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// WELCOME SCREEN
+// ════════════════════════════════════════════════════
+function showWelcomeScreen() {
+  const area = document.getElementById('chat-area');
+  area.innerHTML = `
+    <div class="welcome-screen">
+      <div class="welcome-logo">RHF·ZERO</div>
+      <div class="welcome-sub">RADIT HIGH-END FUTURE · AI SYSTEM v2</div>
+      <div class="welcome-chips">
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan scene 3D dengan karakter, pohon, tanah, hujan, dan langit malam','3d')">🎲 3D scene lengkap</div>
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan REST API Node.js dengan Express dan MongoDB','serius')">⚙️ REST API Node.js</div>
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan player controller dengan movement, jump, dash, dan animasi','godot')">🟦 Godot player controller</div>
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan FPS player controller dengan shooting dan health system','unity')">⬜ Unity FPS controller</div>
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan sistem inventory dan shop untuk game RPG','roblox')">🟥 Roblox RPG inventory</div>
+        <div class="welcome-chip" onclick="quickPrompt('Buatkan karakter C++ dengan movement, health, dan ability system','unreal')">🟩 Unreal C++ character</div>
+        <div class="welcome-chip" onclick="quickPrompt('Scrape data produk dari website e-commerce menggunakan Python','scraper')">🌐 Python scraper</div>
+        <div class="welcome-chip" onclick="quickPrompt('Halo, siapa kamu?','santai')">💬 Kenalan</div>
+      </div>
+    </div>`;
+}
+
+function quickPrompt(text, targetMode) {
+  const input = document.getElementById('msg-input');
+  input.value = text;
+  autoGrow(input);
+  input.focus();
+  if (targetMode) {
+    const btn = document.querySelector('.mode-btn[data-mode="' + targetMode + '"]');
+    if (btn) setMode(btn);
+  } else if (text.toLowerCase().includes('3d') || text.toLowerCase().includes('scene') || text.toLowerCase().includes('lobby')) {
+    const btn3d = document.querySelector('.mode-btn[data-mode="3d"]');
+    if (btn3d) setMode(btn3d);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// MODE
+// ════════════════════════════════════════════════════
+function setMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+
+  // Update hints
+  document.getElementById('input-hint').textContent = MODE_HINTS[currentMode] || '';
+  document.getElementById('input-hint').className = 'input-mode-hint mode-' + currentMode;
+  document.getElementById('status-mode-tag').textContent = currentMode.toUpperCase();
+  document.getElementById('stat-mode').textContent = currentMode.toUpperCase();
+
+  // Send button color
+  const sendBtn = document.getElementById('send-btn');
+  sendBtn.className = 'icon-btn send-btn' + (currentMode === '3d' ? ' mode-3d' : '');
+
+  // Input class
+  document.getElementById('msg-input').className = 'mode-' + currentMode;
+
+  // Auto-switch ke detektif jika ada gambar
+  if (pendingImage && currentMode !== 'detektif') {
+    const detBtn = document.querySelector('.mode-btn[data-mode="detektif"]');
+    if (detBtn) setMode(detBtn);
+    showToast('Mode otomatis beralih ke Detektif karena ada gambar', 'success');
+  }
+
+  // Sembunyikan viewer jika bukan mode 3D
+  if (currentMode !== '3d') {
+    // Biarkan viewer terbuka kalau sudah ada scene — user bisa tutup manual
+  }
+}
+
+// ════════════════════════════════════════════════════
+// SEND MESSAGE
+// ════════════════════════════════════════════════════
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('msg-input');
+  const msg = input.value.trim();
+  if (!msg && !pendingImage) return;
+
+  // Buat chat baru jika belum ada
+  if (!currentChatId) {
+    const newId = 'chat_' + Date.now();
+    currentChatId = newId;
+    const nc = { _id: newId, title: (msg || 'Chat').substring(0, 40), updatedAt: Date.now(), mode: currentMode };
+    chatHistory.unshift(nc);
+    renderSidebarHistory();
+    try { await memoryCall('createChat', newId, { title: nc.title, mode: currentMode }); } catch(e){}
+  }
+
+  // Bersihkan welcome screen
+  const area = document.getElementById('chat-area');
+  if (area.querySelector('.welcome-screen')) area.innerHTML = '';
+
+  isLoading = true;
+  setStatus('busy', '⟳ MENGHUBUNGI AI...');
+
+  // Tampilkan pesan user
+  renderMsg('user', msg || '[Gambar dikirim]', 'txt', currentMode);
+
+  // Tampilkan typing
+  const typingEl = renderTyping();
+
+  input.value = '';
+  autoGrow(input);
+
+  // Siapkan body request
+  const body = {
+    message: msg,
+    mode: currentMode,
+    uid: UID(),
+    chatId: currentChatId,
+    history: getRecentHistory(),
+  };
+  if (pendingImageBase64) { body.image = pendingImageBase64; }
+  clearImage(true);
+
+  try {
+    if (ENGINE_MODES.includes(currentMode)) {
+      // ── Engine mode: /api/generate (multi-file output) ──
+      const genRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, engine: currentMode, uid: UID(), chatId: currentChatId })
+      });
+      const genData = await genRes.json();
+      typingEl.remove();
+      if (genData.error) throw new Error(genData.error);
+      renderMsg('ai', buildGenerateSummary(genData), 'code', currentMode);
+      showMultifilePanel(genData);
+      updateChatTitle(msg || 'Generate ' + currentMode);
+      setStatus('online', '✓ ' + genData.total + ' FILE DIGENERATE');
+      totalMessages++;
+
+    } else {
+      // ── Normal mode: /api/chat ──
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      typingEl.remove();
+      if (data.error) throw new Error(data.error);
+      const responseMode = data.mode || currentMode;
+      renderMsg('ai', data.response, data.format || 'txt', responseMode);
+      updateChatTitle(msg || '[Gambar]');
+      if (responseMode === '3d' && data.format === 'html') {
+        last3dHtml = data.response;
+        open3DViewer(data.response);
+      }
+      setStatus('online', '✓ RESPONS DITERIMA');
+      totalMessages++;
+    }
+
+  } catch (e) {
+    typingEl.remove();
+    renderMsg('ai', '❌ Error: ' + (e.message || 'Gagal menghubungi AI. Coba lagi.'), 'txt', 'santai');
+    setStatus('error', '❌ ERROR — ' + e.message);
+  }
+
+  isLoading = false;
+  setTimeout(() => setStatus('online', 'AI SIAP · SEMUA PROVIDER ONLINE'), 3000);
+}
+
+function getRecentHistory() {
+  const msgs = document.querySelectorAll('#chat-area .msg');
+  const h = [];
+  msgs.forEach(m => {
+    const role = m.classList.contains('user') ? 'User' : 'AI';
+    const text = m.querySelector('.msg-bubble')?.textContent?.substring(0, 300);
+    if (text) h.push(`${role}: ${text}`);
+  });
+  return h.slice(-20);
+}
+
+// ════════════════════════════════════════════════════
+// RENDER MESSAGES
+// ════════════════════════════════════════════════════
+function renderMsg(role, content, format, mode, scroll = true) {
+  const area = document.getElementById('chat-area');
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}${role === 'ai' && mode ? ' mode-' + mode : ''}`;
+
+  const header = document.createElement('div');
+  header.className = 'msg-header';
+  header.innerHTML = `
+    <span class="msg-role">${role === 'user' ? '👤 KAMU' : '🤖 RHF ZERO'}</span>
+    <span class="msg-time">${now}</span>`;
+  wrap.appendChild(header);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  if (format === 'html' && role === 'ai') {
+    // Tampilkan preview text + tombol lihat di viewer
+    const preview = content.substring(0, 120).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    bubble.innerHTML = `<code style="font-size:11px;color:var(--cyan)">${preview}...</code>`;
+  } else if (content.includes('```') && role === 'ai') {
+    bubble.innerHTML = renderMarkdown(content);
+  } else {
+    bubble.innerHTML = escHtml(content).replace(/\n/g, '<br/>');
+  }
+
+  wrap.appendChild(bubble);
+
+  // Action buttons untuk AI
+  if (role === 'ai') {
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'act-btn';
+    copyBtn.textContent = '📋 SALIN';
+    copyBtn.onclick = () => { navigator.clipboard.writeText(content); showToast('Disalin!', 'success'); };
+    actions.appendChild(copyBtn);
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'act-btn';
+    dlBtn.textContent = '💾 UNDUH';
+    dlBtn.onclick = () => showDownloadModal(content, format, mode);
+    actions.appendChild(dlBtn);
+
+    // Tombol lihat 3D
+    if (format === 'html') {
+      const view3dBtn = document.createElement('button');
+      view3dBtn.className = 'act-btn primary';
+      view3dBtn.textContent = '🎲 LIHAT 3D';
+      view3dBtn.onclick = () => open3DViewer(content);
+      actions.appendChild(view3dBtn);
+
+      const popoutBtn = document.createElement('button');
+      popoutBtn.className = 'act-btn primary';
+      popoutBtn.textContent = '⬡ POPOUT';
+      popoutBtn.onclick = () => popoutHtml(content);
+      actions.appendChild(popoutBtn);
+    }
+
+    // Tombol lihat multi-file panel untuk engine modes
+    if (ENGINE_MODES.includes(mode) && lastGeneratedFiles.length > 0) {
+      const showPanelBtn = document.createElement('button');
+      showPanelBtn.className = 'act-btn primary';
+      showPanelBtn.textContent = '📦 LIHAT FILE';
+      showPanelBtn.onclick = () => document.getElementById('multifile-panel').classList.add('visible');
+      actions.appendChild(showPanelBtn);
+    }
+
+    wrap.appendChild(actions);
+  }
+
+  area.appendChild(wrap);
+  if (scroll) area.scrollTop = area.scrollHeight;
+  return wrap;
+}
+
+function renderTyping() {
+  const area = document.getElementById('chat-area');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.innerHTML = `
+    <div class="msg-header"><span class="msg-role">🤖 RHF ZERO</span></div>
+    <div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+  return wrap;
+}
+
+function renderMarkdown(text) {
+  // Simple markdown: code blocks
+  return escHtml(text)
+    .replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${code}</code></pre>`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br/>');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════════════
+// 3D VIEWER
+// ════════════════════════════════════════════════════
+function open3DViewer(htmlContent) {
+  const wrap = document.getElementById('viewer-3d-wrap');
+  const iframe = document.getElementById('viewer-3d');
+
+  wrap.classList.add('visible');
+  last3dHtml = htmlContent;
+
+  // Tulis HTML ke srcdoc iframe (aman, terisolasi)
+  iframe.srcdoc = htmlContent;
+
+  // Scroll agar viewer kelihatan
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  showToast('🎲 Scene 3D berhasil dirender!', 'success');
+}
+
+function close3DViewer() {
+  const wrap = document.getElementById('viewer-3d-wrap');
+  wrap.classList.remove('visible', 'expanded');
+  document.getElementById('viewer-3d').srcdoc = '';
+}
+function closeViewer() { close3DViewer(); }
+
+function popoutViewer() {
+  if (!last3dHtml) return;
+  popoutHtml(last3dHtml);
+}
+
+function popoutHtml(htmlContent) {
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(htmlContent);
+    w.document.close();
+  }
+}
+
+// ════════════════════════════════════════════════════
+// STATUS BAR
+// ════════════════════════════════════════════════════
+function setStatus(state, text) {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  dot.className = 'status-dot' + (state !== 'online' ? ' ' + state : '');
+  txt.textContent = text;
+}
+
+// ════════════════════════════════════════════════════
+// IMAGE UPLOAD
+// ════════════════════════════════════════════════════
+function handleImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Hanya file gambar yang didukung', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('Gambar terlalu besar (max 10MB)', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    pendingImage = file;
+    pendingImageBase64 = ev.target.result;
+    document.getElementById('img-preview-thumb').src = ev.target.result;
+    document.getElementById('img-preview-bar').classList.add('visible');
+    // Auto switch ke detektif
+    const detBtn = document.querySelector('.mode-btn[data-mode="detektif"]');
+    if (detBtn && currentMode !== 'detektif') setMode(detBtn);
+    showToast('Gambar siap — mode Detektif aktif', 'success');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function clearImage(silent = false) {
+  pendingImage = null;
+  pendingImageBase64 = null;
+  document.getElementById('img-preview-bar').classList.remove('visible');
+  document.getElementById('img-preview-thumb').src = '';
+  if (!silent) showToast('Gambar dihapus', '');
+}
+
+// ════════════════════════════════════════════════════
+// DOWNLOAD MODAL
+// ════════════════════════════════════════════════════
+function showDownloadModal(content, format, mode) {
+  let ext = MODE_DL_EXT[mode] || (format === 'txt' ? 'txt' : format);
+  if (format === 'html') ext = 'html';
+  if (format === 'py') ext = 'py';
+  if (format === 'js') ext = 'js';
+  const filename = `rhfzero-${mode}-${Date.now()}.${ext}`;
+  pendingDownload = { content, filename };
+  document.getElementById('download-info').innerHTML =
+    `File: <strong style="color:var(--gold2)">${filename}</strong><br/>Ukuran: ${(content.length / 1024).toFixed(1)} KB`;
+  document.getElementById('download-modal').classList.add('show');
+}
+
+function doDownload() {
+  const blob = new Blob([pendingDownload.content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = pendingDownload.filename;
+  a.click();
+  closeDownloadModal();
+  showToast('File berhasil diunduh!', 'success');
+}
+
+function closeDownloadModal() {
+  document.getElementById('download-modal').classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════
+// CLEAR CHAT
+// ════════════════════════════════════════════════════
+function clearChat() {
+  if (!confirm('Bersihkan tampilan chat? (Data tersimpan di riwayat)')) return;
+  document.getElementById('chat-area').innerHTML = '';
+  close3DViewer();
+  showWelcomeScreen();
+}
+
+// ════════════════════════════════════════════════════
+// UPDATE CHAT TITLE DI SIDEBAR
+// ════════════════════════════════════════════════════
+function updateChatTitle(msg) {
+  const chat = chatHistory.find(c => c._id === currentChatId);
+  if (chat && (chat.title === 'Chat Baru' || !chat.title)) {
+    chat.title = msg.substring(0, 40);
+    chat.updatedAt = Date.now();
+    chat.mode = currentMode;
+    renderSidebarHistory();
+    // Update di Firestore (async, non-blocking)
+    memoryCall('createChat', currentChatId, { title: chat.title, mode: currentMode }).catch(() => {});
+  }
+}
+
+// ════════════════════════════════════════════════════
+// INPUT HELPERS
+// ════════════════════════════════════════════════════
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+// ════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+// ════════════════════════════════════════════════════
+// GENERATE: SUMMARY BUILDER
+// ════════════════════════════════════════════════════
+function buildGenerateSummary(data) {
+  const lines = [];
+  lines.push('📦 ' + data.engineLabel + ' — ' + data.total + ' file berhasil digenerate');
+  if (data.description) lines.push('📝 ' + data.description);
+  lines.push('');
+  (data.files || []).forEach((f, i) => {
+    lines.push('  ' + (i+1) + '. ' + f.name + '  (' + f.sizeKb + ' KB)');
+  });
+  lines.push('');
+  lines.push('Total: ' + data.totalSizeKb + ' KB · Klik tombol di bawah atau panel untuk unduh tiap file.');
+  return lines.join('\n');
+}
+
+// ════════════════════════════════════════════════════
+// GENERATE: MULTI-FILE PANEL
+// ════════════════════════════════════════════════════
+const EXT_ICON = {
+  gd:'🟦', tscn:'🟦', tres:'🟦', gdshader:'🟦',
+  cs:'⬜', shader:'⬜', hlsl:'⬜', asmdef:'⬜',
+  lua:'🟥', rbxm:'🟥', rbxl:'🟥',
+  h:'🟩', cpp:'🟩',
+  html:'🌐', js:'🟡', glsl:'🔮', css:'💙',
+  py:'🐍', txt:'📄', json:'📋'
+};
+
+function showMultifilePanel(data) {
+  lastGeneratedFiles = data.files || [];
+  const panel = document.getElementById('multifile-panel');
+  const list  = document.getElementById('multifile-list');
+  const badge = document.getElementById('mf-engine-badge');
+  const cols  = { godot:'#7ec8e3', unity:'#b8d4f0', roblox:'#ff6b6b', unreal:'#a8d8a8', threejs:'#049ef4' };
+  const col   = cols[data.engine] || 'var(--gold2)';
+  badge.textContent   = data.engineLabel || data.engine;
+  badge.style.color   = col;
+  badge.style.borderColor = col + '55';
+  list.innerHTML = '';
+  (data.files || []).forEach((file, idx) => {
+    const icon = EXT_ICON[file.ext] || '📄';
+    const item = document.createElement('div');
+    item.className = 'mf-item';
+    item.innerHTML =
+      '<span class="mf-icon">' + icon + '</span>' +
+      '<div class="mf-info">' +
+        '<div class="mf-name">' + escHtml(file.name) + '</div>' +
+        '<div class="mf-meta">' + (file.ext||'').toUpperCase() + ' · ' + file.sizeKb + ' KB · ' + escHtml(file.type||'') + '</div>' +
+      '</div>' +
+      '<button class="mf-view-btn" onclick="viewFile(' + idx + ')">👁 LIHAT</button>' +
+      '<button class="mf-dl-btn" onclick="downloadFile(' + idx + ')">⬇ UNDUH</button>';
+    list.appendChild(item);
+  });
+  panel.classList.add('visible');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeMultifilePanel() {
+  document.getElementById('multifile-panel').classList.remove('visible');
+}
+
+// ════════════════════════════════════════════════════
+// GENERATE: FILE OPERATIONS
+// ════════════════════════════════════════════════════
+function downloadFile(idx) {
+  const file = lastGeneratedFiles[idx];
+  if (!file) return;
+  const blob = new Blob([file.content], { type: file.mime || 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('⬇ ' + file.name + ' diunduh!', 'success');
+}
+
+function downloadAllFiles() {
+  if (!lastGeneratedFiles.length) { showToast('Tidak ada file untuk diunduh', 'error'); return; }
+  lastGeneratedFiles.forEach((file, idx) => {
+    setTimeout(() => downloadFile(idx), idx * 450);
+  });
+  showToast('⬇ Mengunduh ' + lastGeneratedFiles.length + ' file...', 'success');
+}
+
+function viewFile(idx) {
+  const file = lastGeneratedFiles[idx];
+  if (!file) return;
+  cvCurrentFile = file;
+  document.getElementById('cv-filename').textContent = file.name;
+  document.getElementById('cv-content').textContent  = file.content;
+  document.getElementById('code-viewer-modal').classList.add('show');
+}
+
+// ════════════════════════════════════════════════════
+// CODE VIEWER MODAL
+// ════════════════════════════════════════════════════
+function closeCvModal() {
+  document.getElementById('code-viewer-modal').classList.remove('show');
+  cvCurrentFile = null;
+}
+
+function cvDownload() {
+  if (!cvCurrentFile) return;
+  const blob = new Blob([cvCurrentFile.content], { type: cvCurrentFile.mime || 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = cvCurrentFile.name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('⬇ ' + cvCurrentFile.name + ' diunduh!', 'success');
+}
+
+document.getElementById('code-viewer-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCvModal();
+});
+
+// ════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // Ctrl/Cmd + Enter → kirim
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendMessage();
+  // Escape → tutup modal/viewer
+  if (e.key === 'Escape') {
+    closeDownloadModal();
+    close3DViewer();
+    closeCvModal();
+    closeMultifilePanel();
+  }
+});
+
+// ════════════════════════════════════════════════════
+// CLICK DI LUAR MODAL → TUTUP
+// ════════════════════════════════════════════════════
+document.getElementById('download-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeDownloadModal();
+});
+</script>
+
+<!-- CODE VIEWER MODAL -->
+<div id="code-viewer-modal">
+  <div class="cv-box">
+    <div class="cv-header">
+      <span class="cv-filename" id="cv-filename">file.txt</span>
+      <button class="cv-dl" onclick="cvDownload()">⬇ UNDUH</button>
+      <button class="cv-close" onclick="closeCvModal()">✕</button>
+    </div>
+    <div class="cv-body">
+      <pre id="cv-content"></pre>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
