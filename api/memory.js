@@ -1,189 +1,252 @@
-// api/memory.js — RHF ZERO Memory Handler (Firebase Firestore REST API)
+// api/memory.js — RHF ZERO Memory Layer (Firestore REST API)
+// Handles: createChat, getChats, deleteChat, saveMessage, getMessages
+// Endpoint handler: POST /api/memory
 
-const FIREBASE_BASE = 'https://firestore.googleapis.com/v1/projects/rhf-confrims/databases/(default)/documents';
-const API_KEY = 'AIzaSyDNFXLa8WGAqhLnc8RrLLTgP3nLWvXkd1w';
+const FIREBASE_API_KEY = 'AIzaSyDKlLibZlP5FlFcgPV1lM_8ykMz1RuXbvA';
+const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/rhf-zero-26ad2/databases/(default)/documents';
 
-// ── HELPER: Firestore REST ──
-async function firestoreRequest(path, method = 'GET', body = null) {
-  const url = `${FIREBASE_BASE}${path}?key=${API_KEY}`;
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(url, opts);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Firestore error ${res.status}: ${err}`);
+// ════════════════════════════════════════════════════════
+// HELPER: Firestore value encoder/decoder
+// ════════════════════════════════════════════════════════
+
+function encodeValue(value) {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (typeof value === 'boolean') return { booleanValue: value };
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) return { integerValue: String(value) };
+    return { doubleValue: value };
   }
-  // DELETE returns empty body
-  if (method === 'DELETE') return null;
-  return res.json();
+  if (typeof value === 'string') return { stringValue: value };
+  if (value instanceof Date) return { timestampValue: value.toISOString() };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(encodeValue) } };
+  if (typeof value === 'object') {
+    const fields = {};
+    for (const [k, v] of Object.entries(value)) {
+      fields[k] = encodeValue(v);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(value) };
 }
 
-// ── HELPER: Convert JS value → Firestore field ──
-function toFirestoreField(val) {
-  if (typeof val === 'string') return { stringValue: val };
-  if (typeof val === 'number') return { integerValue: val };
-  if (typeof val === 'boolean') return { booleanValue: val };
-  if (val === null || val === undefined) return { nullValue: null };
-  return { stringValue: String(val) };
+function encodeDocument(obj) {
+  const fields = {};
+  for (const [k, v] of Object.entries(obj)) {
+    fields[k] = encodeValue(v);
+  }
+  return { fields };
 }
 
-// ── HELPER: Convert Firestore field → JS value ──
-function fromFirestoreField(field) {
-  if (field.stringValue !== undefined) return field.stringValue;
-  if (field.integerValue !== undefined) return Number(field.integerValue);
-  if (field.booleanValue !== undefined) return field.booleanValue;
-  if (field.nullValue !== undefined) return null;
+function decodeValue(val) {
+  if (!val) return null;
+  if ('nullValue' in val) return null;
+  if ('booleanValue' in val) return val.booleanValue;
+  if ('integerValue' in val) return parseInt(val.integerValue, 10);
+  if ('doubleValue' in val) return val.doubleValue;
+  if ('stringValue' in val) return val.stringValue;
+  if ('timestampValue' in val) return new Date(val.timestampValue).getTime();
+  if ('arrayValue' in val) return (val.arrayValue.values || []).map(decodeValue);
+  if ('mapValue' in val) return decodeDocument(val.mapValue);
   return null;
 }
 
-// ── HELPER: Convert Firestore document → plain object ──
-function fromFirestoreDoc(doc) {
-  if (!doc || !doc.fields) return null;
-  const obj = {};
-  for (const [key, val] of Object.entries(doc.fields)) {
-    obj[key] = fromFirestoreField(val);
+function decodeDocument(doc) {
+  if (!doc || !doc.fields) return {};
+  const result = {};
+  for (const [k, v] of Object.entries(doc.fields)) {
+    result[k] = decodeValue(v);
   }
-  // Extract ID from doc.name (last segment)
-  if (doc.name) obj._id = doc.name.split('/').pop();
-  return obj;
+  // Ekstrak ID dari name path jika ada
+  if (doc.name) {
+    const parts = doc.name.split('/');
+    result._id = parts[parts.length - 1];
+  }
+  return result;
 }
 
-// ── ACTIONS ──
+// ════════════════════════════════════════════════════════
+// HELPER: Firestore REST requests
+// ════════════════════════════════════════════════════════
 
-// createChat: buat room chat baru
-async function createChat(uid, chatId, data = {}) {
-  const title = data.title || 'Chat Baru';
-  const timestamp = Date.now();
-  const docBody = {
-    fields: {
-      title: toFirestoreField(title),
-      createdAt: toFirestoreField(timestamp),
-      updatedAt: toFirestoreField(timestamp),
-      mode: toFirestoreField(data.mode || 'santai'),
-    }
-  };
-  // Use chatId as document ID
-  const result = await firestoreRequest(
-    `/users/${uid}/chats/${chatId}`,
-    'PATCH',
-    docBody
-  );
-  return { success: true, chatId, doc: fromFirestoreDoc(result) };
+async function fsGet(path) {
+  const url = `${FIRESTORE_BASE}/${path}?key=${FIREBASE_API_KEY}`;
+  const r = await fetch(url);
+  if (!r.ok) {
+    if (r.status === 404) return null;
+    throw new Error(`Firestore GET failed: ${r.status} ${await r.text()}`);
+  }
+  return r.json();
 }
 
-// getChats: ambil semua chat rooms user (urut updatedAt desc)
+async function fsPatch(path, data, updateMask) {
+  let url = `${FIRESTORE_BASE}/${path}?key=${FIREBASE_API_KEY}`;
+  if (updateMask && updateMask.length > 0) {
+    url += '&' + updateMask.map(f => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join('&');
+  }
+  const r = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(encodeDocument(data))
+  });
+  if (!r.ok) throw new Error(`Firestore PATCH failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function fsPost(path, data) {
+  const url = `${FIRESTORE_BASE}/${path}?key=${FIREBASE_API_KEY}`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(encodeDocument(data))
+  });
+  if (!r.ok) throw new Error(`Firestore POST failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function fsDelete(path) {
+  const url = `${FIRESTORE_BASE}/${path}?key=${FIREBASE_API_KEY}`;
+  const r = await fetch(url, { method: 'DELETE' });
+  if (!r.ok && r.status !== 404) throw new Error(`Firestore DELETE failed: ${r.status}`);
+  return true;
+}
+
+async function fsList(path) {
+  const url = `${FIRESTORE_BASE}/${path}?key=${FIREBASE_API_KEY}&pageSize=200`;
+  const r = await fetch(url);
+  if (!r.ok) {
+    if (r.status === 404) return [];
+    throw new Error(`Firestore LIST failed: ${r.status} ${await r.text()}`);
+  }
+  const data = await r.json();
+  return (data.documents || []).map(decodeDocument);
+}
+
+// ════════════════════════════════════════════════════════
+// PUBLIC API FUNCTIONS
+// ════════════════════════════════════════════════════════
+
+/**
+ * createChat — Buat/update chat room (idempoten via PATCH)
+ */
+async function createChat(uid, chatId, { title = 'Chat Baru', mode = 'santai' } = {}) {
+  const path = `users/${uid}/chats/${chatId}`;
+  const now = Date.now();
+  const data = { title, mode, updatedAt: now, createdAt: now };
+  await fsPatch(path, data);
+  return { _id: chatId, ...data };
+}
+
+/**
+ * getChats — Ambil semua chat rooms user, sorted by updatedAt desc
+ */
 async function getChats(uid) {
-  const url = `${FIREBASE_BASE}/users/${uid}/chats?key=${API_KEY}&orderBy=updatedAt+desc&pageSize=50`;
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
-  if (!res.ok) throw new Error(`getChats error ${res.status}`);
-  const data = await res.json();
-  const docs = (data.documents || []).map(fromFirestoreDoc).filter(Boolean);
-  // Sort by updatedAt desc (Firestore orderBy may require index, fallback sort)
+  const docs = await fsList(`users/${uid}/chats`);
   docs.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  return { success: true, chats: docs };
+  return docs;
 }
 
-// deleteChat: hapus chat room + semua messages
+/**
+ * deleteChat — Hapus chat room + semua messages-nya
+ */
 async function deleteChat(uid, chatId) {
-  // 1. Hapus semua messages dalam chatId
-  const msgsUrl = `${FIREBASE_BASE}/users/${uid}/chats/${chatId}/messages?key=${API_KEY}&pageSize=300`;
-  const msgsRes = await fetch(msgsUrl, { headers: { 'Content-Type': 'application/json' } });
-  if (msgsRes.ok) {
-    const msgsData = await msgsRes.json();
-    const docs = msgsData.documents || [];
-    for (const doc of docs) {
-      const msgPath = '/' + doc.name.split('/documents/')[1];
-      await firestoreRequest(msgPath, 'DELETE').catch(() => {});
+  // Hapus semua messages dulu
+  try {
+    const messages = await fsList(`users/${uid}/chats/${chatId}/messages`);
+    for (const msg of messages) {
+      if (msg._id) {
+        await fsDelete(`users/${uid}/chats/${chatId}/messages/${msg._id}`);
+      }
     }
+  } catch (e) {
+    console.error('[deleteChat] Error deleting messages:', e.message);
   }
-  // 2. Hapus chat document
-  await firestoreRequest(`/users/${uid}/chats/${chatId}`, 'DELETE');
-  return { success: true, chatId };
+  // Hapus chat room
+  await fsDelete(`users/${uid}/chats/${chatId}`);
+  return true;
 }
 
-// saveMessage: simpan pesan ke chat room
-async function saveMessage(uid, chatId, data = {}) {
-  const msgId = data.msgId || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  const timestamp = Date.now();
-  const docBody = {
-    fields: {
-      role: toFirestoreField(data.role || 'user'),
-      content: toFirestoreField(data.content || ''),
-      timestamp: toFirestoreField(timestamp),
-      format: toFirestoreField(data.format || 'txt'),
-      mode: toFirestoreField(data.mode || 'santai'),
-    }
-  };
-  // Simpan pesan
-  await firestoreRequest(
-    `/users/${uid}/chats/${chatId}/messages/${msgId}`,
-    'PATCH',
-    docBody
-  );
-  // Update updatedAt di chat room
-  const chatUpdate = {
-    fields: {
-      updatedAt: toFirestoreField(timestamp),
-      lastMessage: toFirestoreField((data.content || '').substring(0, 80)),
-    }
-  };
-  await firestoreRequest(
-    `/users/${uid}/chats/${chatId}?updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=lastMessage`,
-    'PATCH',
-    chatUpdate
-  ).catch(() => {});
-  return { success: true, msgId };
+/**
+ * saveMessage — Simpan pesan ke subcollection messages (auto-generated ID)
+ */
+async function saveMessage(uid, chatId, { role, content, format = 'txt', mode = 'santai' } = {}) {
+  const path = `users/${uid}/chats/${chatId}/messages`;
+  const now = Date.now();
+  const data = { role, content, format, mode, timestamp: now };
+
+  // POST ke collection untuk auto-generated ID
+  const doc = await fsPost(path, data);
+
+  // Update updatedAt di parent chat
+  try {
+    await fsPatch(`users/${uid}/chats/${chatId}`, { updatedAt: now }, ['updatedAt']);
+  } catch (e) {
+    // Non-fatal
+  }
+
+  return decodeDocument(doc);
 }
 
-// getMessages: ambil semua pesan dari chat room
+/**
+ * getMessages — Ambil semua messages dari sebuah chat, sorted by timestamp
+ */
 async function getMessages(uid, chatId) {
-  const url = `${FIREBASE_BASE}/users/${uid}/chats/${chatId}/messages?key=${API_KEY}&pageSize=200`;
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
-  if (!res.ok) throw new Error(`getMessages error ${res.status}`);
-  const data = await res.json();
-  const docs = (data.documents || []).map(fromFirestoreDoc).filter(Boolean);
-  // Sort by timestamp asc
+  const docs = await fsList(`users/${uid}/chats/${chatId}/messages`);
   docs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-  return { success: true, messages: docs };
+  return docs;
 }
 
-// ── MAIN HANDLER ──
+// ════════════════════════════════════════════════════════
+// HANDLER: POST /api/memory (Next.js serverless)
+// ════════════════════════════════════════════════════════
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { action, uid, chatId, data } = req.body || {};
+  const { action, uid, chatId, data } = req.body;
 
-  if (!uid) return res.status(400).json({ error: 'uid diperlukan' });
-  if (!action) return res.status(400).json({ error: 'action diperlukan' });
+  if (!uid) return res.status(400).json({ error: 'UID diperlukan' });
+  if (!action) return res.status(400).json({ error: 'Action diperlukan' });
 
   try {
     switch (action) {
-      case 'createChat':
-        return res.json(await createChat(uid, chatId || `chat_${Date.now()}`, data || {}));
-      case 'getChats':
-        return res.json(await getChats(uid));
-      case 'deleteChat':
+      case 'createChat': {
         if (!chatId) return res.status(400).json({ error: 'chatId diperlukan' });
-        return res.json(await deleteChat(uid, chatId));
-      case 'saveMessage':
+        const result = await createChat(uid, chatId, data || {});
+        return res.json({ ok: true, chat: result });
+      }
+
+      case 'getChats': {
+        const chats = await getChats(uid);
+        return res.json({ ok: true, chats });
+      }
+
+      case 'deleteChat': {
         if (!chatId) return res.status(400).json({ error: 'chatId diperlukan' });
-        return res.json(await saveMessage(uid, chatId, data || {}));
-      case 'getMessages':
+        await deleteChat(uid, chatId);
+        return res.json({ ok: true });
+      }
+
+      case 'saveMessage': {
         if (!chatId) return res.status(400).json({ error: 'chatId diperlukan' });
-        return res.json(await getMessages(uid, chatId));
+        if (!data) return res.status(400).json({ error: 'data pesan diperlukan' });
+        const msg = await saveMessage(uid, chatId, data);
+        return res.json({ ok: true, message: msg });
+      }
+
+      case 'getMessages': {
+        if (!chatId) return res.status(400).json({ error: 'chatId diperlukan' });
+        const messages = await getMessages(uid, chatId);
+        return res.json({ ok: true, messages });
+      }
+
       default:
         return res.status(400).json({ error: `Action tidak dikenal: ${action}` });
     }
-  } catch (e) {
-    console.error('[memory.js]', e.message);
-    return res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error('[memory.js] Handler error:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 }
 
-// ── EXPORT untuk dipakai di chat.js ──
+// Export untuk dipakai chat.js
 export { saveMessage, createChat };
